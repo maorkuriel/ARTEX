@@ -1,0 +1,10 @@
+# Overlay for the slim demo image (see Dockerfile.demo).
+# Usage:
+#   docker build --target build -t artex-build-stage .
+#   docker compose -f docker-compose.yml -f docker-compose.demo.yml up -d
+services:
+  artex:
+    build:
+      context: .
+      dockerfile: Dockerfile.demo
+    image: artex:demo

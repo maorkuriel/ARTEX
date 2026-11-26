@@ -1,0 +1,17 @@
+# Local-demo overlay: disables the in-container agent-isolation self-test.
+#
+# Why: the server runs as root and drops privileges to an unprivileged agent uid
+# (10001), then refuses to start unless that uid CANNOT write to /app/data, /app/keys
+# and /app/skills. Those paths are host bind-mounts; on Docker Desktop (macOS/Windows)
+# the mounted files are broadly writable, so the self-test fails and the server
+# crash-loops. `-dev-insecure-no-isolation` (server/isolation.go) is the project's
+# documented development escape. SAFE for a local, single-user, no-live-agent demo;
+# do NOT use it where the agent runs real tools against real targets.
+#
+# Usage (full image):
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+# Usage (slim image):
+#   docker compose -f docker-compose.yml -f docker-compose.demo.yml -f docker-compose.dev.yml up -d
+services:
+  artex:
+    command: ["-addr", ":8787", "-proxy", ":8788", "-dev-insecure-no-isolation"]

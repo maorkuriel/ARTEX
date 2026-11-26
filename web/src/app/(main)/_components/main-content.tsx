@@ -8,6 +8,7 @@ import { X } from "lucide-react";
 
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { WalkthroughLauncher } from "@/components/walkthrough/walkthrough";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { t } from "@/i18n";
 import { api } from "@/lib/api";
@@ -122,8 +123,11 @@ export function MainContent({ children }: { children: ReactNode }) {
           </div>
           <div className="flex items-center gap-2">
             {version && (
-              <span className="font-medium text-muted-foreground text-xs tabular-nums">{t("Version · {version}", { version })}</span>
+              <span className="font-medium text-muted-foreground text-xs tabular-nums">
+                {t("Version · {version}", { version })}
+              </span>
             )}
+            <WalkthroughLauncher />
             <LayoutControls />
             <ThemeSwitcher />
             <AccountSwitcher users={[currentUser]} />
