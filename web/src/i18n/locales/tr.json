@@ -2724,5 +2724,15 @@
   "Search company…": "Şirket ara…",
   "Failed to load companies": "Şirketler yüklenemedi",
   "No company found": "Şirket bulunamadı",
-  "Manage companies": "Şirketleri yönet"
+  "Manage companies": "Şirketleri yönet",
+  "Guided tour": "Rehberli tur",
+  "Guided walkthrough": "Rehberli tanıtım",
+  "Chapter {n} of {total}": "Bölüm {n} / {total}",
+  "What you're looking at": "Ne görüyorsunuz",
+  "Try this": "Bunu deneyin",
+  "Why it matters": "Neden önemli",
+  "Go to chapter {n}": "{n}. bölüme git",
+  "Restart the walkthrough from chapter 1 (keeps the selected persona)": "Tanıtımı 1. bölümden yeniden başlat (seçili persona korunur)",
+  "Reset": "Sıfırla",
+  "Finish": "Bitir"
 }

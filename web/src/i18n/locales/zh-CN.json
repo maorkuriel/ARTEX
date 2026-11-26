@@ -2724,5 +2724,15 @@
   "Search company…": "搜索企业…",
   "Failed to load companies": "加载企业失败",
   "No company found": "未找到企业",
-  "Manage companies": "管理企业"
+  "Manage companies": "管理企业",
+  "Guided tour": "引导教程",
+  "Guided walkthrough": "引导演示",
+  "Chapter {n} of {total}": "第 {n} 章，共 {total} 章",
+  "What you're looking at": "你正在看什么",
+  "Try this": "试试这个",
+  "Why it matters": "为何重要",
+  "Go to chapter {n}": "跳转到第 {n} 章",
+  "Restart the walkthrough from chapter 1 (keeps the selected persona)": "从第 1 章重新开始演示（保留所选角色）",
+  "Reset": "重置",
+  "Finish": "完成"
 }
