@@ -202,14 +202,17 @@ w()
 w("-- ============ 2. Companies + organisation scope (Asset graph roots) ============")
 w("""INSERT INTO companies (id,name,nkey,logo) VALUES
  (9001,'Acme Corp','acme-corp-demo',''),
- (9002,'Globex Retail','globex-retail-demo','');""")
+ (9002,'Globex Retail','globex-retail-demo',''),
+ (9003,'Acme Cloud Corp','acme-cloud-corp-demo','');""")
 w("""INSERT INTO company_scope (company_id,kind,domain,net,value,raw,reason) VALUES
  (9001,'domain','acme.com',NULL,NULL,'acme.com','Primary production domain'),
  (9001,'cidr',NULL,'203.0.113.0/24',NULL,'203.0.113.0/24','DMZ edge range'),
  (9001,'ip',NULL,'198.51.100.20',NULL,'198.51.100.20','VPN concentrator'),
  (9001,'keyword',NULL,NULL,'acme','acme','Brand keyword'),
  (9002,'domain','globex.io',NULL,NULL,'globex.io','Storefront domain'),
- (9002,'cidr',NULL,'192.0.2.0/24',NULL,'192.0.2.0/24','Retail edge range');""")
+ (9002,'cidr',NULL,'192.0.2.0/24',NULL,'192.0.2.0/24','Retail edge range'),
+ (9003,'domain','acme.demo.local',NULL,NULL,'acme.demo.local','Cloud estate root domain'),
+ (9003,'cidr',NULL,'198.51.100.0/24',NULL,'198.51.100.0/24','Cloud edge range');""")
 w()
 
 w("-- ============ 3. Explorations (one per task) ============")
@@ -217,7 +220,10 @@ w("""INSERT INTO explorations (id,description,goal,status,round_no) VALUES
  (9001,'External penetration of the Acme website and admin console','Gain admin access to acme.com and read user data','open',7),
  (9002,'Authorization-bypass and injection testing of api.acme.com','Bypass authz and prove data exposure on api.acme.com','open',5),
  (9003,'DMZ breakthrough and lateral movement to the internal domain','Break the DMZ and take internal DC01','achieved',12),
- (9004,'Globex storefront reconnaissance and surface mapping','Map globex.io attack surface','open',2);""")
+ (9004,'Globex storefront reconnaissance and surface mapping','Map globex.io attack surface','open',2),
+ (9005,'Cloud external recon of acme.demo.local','Enumerate the acme.demo.local cloud attack surface','open',3),
+ (9006,'Billing API authz & injection testing','Test the Customer Billing Portal API','open',4),
+ (9007,'Partner Gateway security audit','Audit the Internal Partner Gateway','open',2);""")
 w()
 
 w(
@@ -228,7 +234,10 @@ w("""INSERT INTO tasks (id,name,description,goal,exploration_id,status,company_i
  (9001,'Acme Web — external to admin','External penetration of the Acme website and admin console','Gain admin access to acme.com and read user data',9001,'running',9001,9001,9001,true,true,true,0,'2026-11-12T09:12:00Z','2026-11-12T09:10:00Z'),
  (9002,'Acme API — authz & injection','Authorization-bypass and injection testing of api.acme.com','Bypass authz and prove data exposure on api.acme.com',9002,'running',9001,9001,9002,true,false,true,0,'2026-11-14T02:20:00Z','2026-11-14T02:15:00Z'),
  (9003,'Acme DMZ → internal','DMZ breakthrough and lateral movement to the internal domain','Break the DMZ and take internal DC01',9003,'done',9001,9001,9001,false,false,true,0,'2026-11-13T14:10:00Z','2026-11-13T14:00:00Z'),
- (9004,'Globex storefront recon','Globex storefront reconnaissance and surface mapping','Map globex.io attack surface',9004,'paused',9002,9002,9002,false,false,true,0,'2026-11-20T08:00:00Z','2026-11-20T07:55:00Z');""")
+ (9004,'Globex storefront recon','Globex storefront reconnaissance and surface mapping','Map globex.io attack surface',9004,'paused',9002,9002,9002,false,false,true,0,'2026-11-20T08:00:00Z','2026-11-20T07:55:00Z'),
+ (9005,'Cloud external recon','Cloud external recon of acme.demo.local','Enumerate the acme.demo.local cloud attack surface',9005,'done',9003,9001,9001,false,false,true,0,'2026-11-21T09:00:00Z','2026-11-21T08:55:00Z'),
+ (9006,'Billing API test','Billing API authz & injection testing','Test the Customer Billing Portal API',9006,'running',9003,9001,9001,false,false,true,0,'2026-11-22T10:00:00Z','2026-11-22T09:55:00Z'),
+ (9007,'Partner Gateway audit','Partner Gateway security audit','Audit the Internal Partner Gateway',9007,'done',9003,9001,9001,false,false,true,0,'2026-11-22T14:00:00Z','2026-11-22T13:55:00Z');""")
 w("UPDATE tasks SET completed_at='2026-11-14T00:30:00Z', status='done' WHERE id=9003;")
 w("UPDATE tasks SET paused=true, paused_at='2026-11-20T09:00:00Z' WHERE id=9004;")
 w("UPDATE tasks SET deadline_at='2026-11-27T09:12:00Z' WHERE id=9001;")
@@ -240,12 +249,13 @@ w(
 
 
 # type, company, task_ids, cols dict
-def asset(id, type_, tids, **k):
+def asset(id, type_, tids, company=None, **k):
+    comp = str(company) if company is not None else ("9001" if id < 9014 else "9002")
     cols = ["id", "type", "company_id", "company_source", "task_ids"]
     vals = [
         str(id),
         f"'{type_}'",
-        "9001" if id < 9014 else "9002",
+        comp,
         "'explicit'",
         "ARRAY[" + ",".join(str(t) for t in tids) + "]::bigint[]",
     ]
@@ -486,6 +496,194 @@ w(
         page_title="'Globex Store'",
         technologies="ARRAY['Cloudflare','React','Node.js']",
         last_seen="'2026-11-20T08:13:00Z'",
+    )
+)
+w()
+
+w("-- ---- Use Case 1 demo: Acme Cloud Corp (acme.demo.local) canonical hierarchy ----")
+w(
+    "-- Overlapping observations from 3 discovery/test tasks (9005/9006/9007) resolve into"
+)
+w("-- single canonical nodes via deterministic dedup keys; task_ids record the merges.")
+w(
+    asset(
+        9201,
+        "root_domain",
+        [9005, 9006, 9007],
+        company=9003,
+        domain="'acme.demo.local'",
+        root_domain="'acme.demo.local'",
+        record_type="'A'",
+        record_value="ARRAY['198.51.100.14']",
+        last_seen="'2026-11-22T10:00:00Z'",
+    )
+)
+w(
+    asset(
+        9202,
+        "subdomain",
+        [9005, 9006],
+        company=9003,
+        domain="'api.acme.demo.local'",
+        root_domain="'acme.demo.local'",
+        record_type="'A'",
+        record_value="ARRAY['198.51.100.14']",
+        last_seen="'2026-11-22T10:01:00Z'",
+    )
+)
+w(
+    asset(
+        9203,
+        "subdomain",
+        [9005, 9007],
+        company=9003,
+        domain="'portal.acme.demo.local'",
+        root_domain="'acme.demo.local'",
+        record_type="'A'",
+        record_value="ARRAY['198.51.100.22']",
+        last_seen="'2026-11-22T10:02:00Z'",
+    )
+)
+w(
+    asset(
+        9204,
+        "subdomain",
+        [9005],
+        company=9003,
+        domain="'admin-staging.acme.demo.local'",
+        root_domain="'acme.demo.local'",
+        record_type="'A'",
+        record_value="ARRAY['198.51.100.22']",
+        last_seen="'2026-11-21T09:10:00Z'",
+    )
+)
+w(
+    asset(
+        9205,
+        "ip",
+        [9005, 9006, 9007],
+        company=9003,
+        ip="'198.51.100.14'",
+        c_segment="'198.51.100.0/24'",
+        bound_domains="ARRAY['acme.demo.local','api.acme.demo.local']",
+        open_ports=OP('{"port":443,"service":"https"}'),
+        last_seen="'2026-11-22T10:03:00Z'",
+    )
+)
+w(
+    asset(
+        9206,
+        "ip",
+        [9005, 9007],
+        company=9003,
+        ip="'198.51.100.22'",
+        c_segment="'198.51.100.0/24'",
+        bound_domains="ARRAY['portal.acme.demo.local','admin-staging.acme.demo.local']",
+        open_ports=OP(
+            '{"port":443,"service":"https"}', '{"port":8443,"service":"admin-api"}'
+        ),
+        last_seen="'2026-11-22T10:04:00Z'",
+    )
+)
+w(
+    asset(
+        9207,
+        "service",
+        [9005, 9006],
+        company=9003,
+        url="'https://api.acme.demo.local'",
+        service_type="'http'",
+        service_name="'nginx'",
+        status_code="200",
+        content_length="2048",
+        page_title="'Acme Cloud API'",
+        technologies="ARRAY['nginx','OpenAPI','PostgreSQL']",
+        last_seen="'2026-11-22T10:05:00Z'",
+    )
+)
+w(
+    asset(
+        9208,
+        "service",
+        [9005, 9007],
+        company=9003,
+        domain="'portal.acme.demo.local'",
+        ip="'198.51.100.22'",
+        port="8443",
+        service_type="'other'",
+        service_name="'admin-api'",
+        last_seen="'2026-11-22T10:06:00Z'",
+    )
+)
+w(
+    asset(
+        9209,
+        "app",
+        [9006],
+        company=9003,
+        app_name="'Customer Billing Portal'",
+        bundle_id="'com.acme.billing'",
+        category="'Finance'",
+        app_description="'Customer invoice & billing portal'",
+        last_seen="'2026-11-22T10:07:00Z'",
+    )
+)
+w(
+    asset(
+        9213,
+        "app",
+        [9007],
+        company=9003,
+        app_name="'Internal Partner Gateway'",
+        bundle_id="'com.acme.partner'",
+        category="'B2B'",
+        app_description="'Partner integration gateway'",
+        last_seen="'2026-11-22T14:10:00Z'",
+    )
+)
+# 9210 — the dedup showcase endpoint: observed by all 3 tasks, enriched with lineage fields.
+w(
+    asset(
+        9210,
+        "endpoint",
+        [9005, 9006, 9007],
+        company=9003,
+        url="'https://api.acme.demo.local/api/v2/invoices/{id}'",
+        method="'GET'",
+        root_domain="'acme.demo.local'",
+        domain="'api.acme.demo.local'",
+        ip="'198.51.100.14'",
+        app_name="'Customer Billing Portal'",
+        params=OP('{"name":"id","in":"path","type":"int"}'),
+        last_seen="'2026-11-22T10:08:00Z'",
+    )
+)
+w(
+    asset(
+        9211,
+        "endpoint",
+        [9006],
+        company=9003,
+        url="'https://api.acme.demo.local/api/v2/auth/token'",
+        method="'POST'",
+        root_domain="'acme.demo.local'",
+        domain="'api.acme.demo.local'",
+        ip="'198.51.100.14'",
+        last_seen="'2026-11-22T10:09:00Z'",
+    )
+)
+w(
+    asset(
+        9212,
+        "endpoint",
+        [9007],
+        company=9003,
+        url="'https://portal.acme.demo.local/internal/export'",
+        method="'GET'",
+        root_domain="'acme.demo.local'",
+        domain="'portal.acme.demo.local'",
+        ip="'198.51.100.22'",
+        last_seen="'2026-11-22T14:11:00Z'",
     )
 )
 w()
@@ -1445,6 +1643,41 @@ w(
         verification="false_positive",
         ts="2026-11-20T08:20:00Z",
         counter="Cloudflare injects HSTS at the edge; header present in production path.",
+    )
+)
+# Use Case 1: two findings from DIFFERENT tasks attach to the same canonical endpoint #9210.
+w(
+    finding(
+        9009,
+        9006,
+        "NULL",
+        "IDOR",
+        "IDOR on /api/v2/invoices/{id}",
+        "high",
+        "confirmed",
+        "Billing API returns other tenants' invoices by changing {id}",
+        "GET /api/v2/invoices/1002 returns another customer's invoice; no ownership check.",
+        [9210],
+        verification="verified",
+        poe=3,
+        ts="2026-11-22T11:00:00Z",
+    )
+)
+w(
+    finding(
+        9010,
+        9005,
+        "NULL",
+        "Verbose Error",
+        "Stack trace disclosure on /api/v2/invoices",
+        "medium",
+        "confirmed",
+        "Malformed {id} returns a framework stack trace disclosing internals",
+        "GET /api/v2/invoices/x triggers a 500 with a full stack trace and DB driver details.",
+        [9210],
+        verification="verified",
+        poe=3,
+        ts="2026-11-21T12:00:00Z",
     )
 )
 w()
