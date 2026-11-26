@@ -66,3 +66,4 @@ posture-runs/
 
 # benchmark runner output (one dir per run)
 benchmark-results/
+scripts/demo/seed_demo.generated.sql
