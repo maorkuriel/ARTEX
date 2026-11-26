@@ -9,12 +9,12 @@ import { ChevronLeft, ChevronRight, Compass, RotateCcw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { t } from "@/i18n";
 import { cn } from "@/lib/utils";
-import { CHAPTERS, PERSONA_LABELS, type Persona } from "@/lib/walkthrough/chapters";
 import { useWalkthrough } from "@/lib/walkthrough/store";
+import { PERSONA_LABELS, type Persona, STEPS, stepNumber, stepUseCase, USE_CASES } from "@/lib/walkthrough/usecases";
 
 const STORAGE_KEY = "artex-walkthrough";
 
-// ── Launcher (placed in the top header) ──────────────────────────────────────
+// ── Launcher (top header) ────────────────────────────────────────────────────
 export function WalkthroughLauncher({ className }: { className?: string }) {
   const start = useWalkthrough((s) => s.start);
   return (
@@ -27,28 +27,15 @@ export function WalkthroughLauncher({ className }: { className?: string }) {
       data-tour="walkthrough-launcher"
     >
       <Compass className="size-3.5" />
-      <span className="hidden sm:inline">{t("Guided tour")}</span>
+      <span className="hidden sm:inline">{t("Guided Walkthrough")}</span>
     </Button>
   );
 }
 
 // ── Persona segmented toggle ─────────────────────────────────────────────────
-function PersonaToggle({
-  persona,
-  onChange,
-  size = "sm",
-}: {
-  persona: Persona;
-  onChange: (p: Persona) => void;
-  size?: "sm" | "xs";
-}) {
+function PersonaToggle({ persona, onChange }: { persona: Persona; onChange: (p: Persona) => void }) {
   return (
-    <div
-      className={cn(
-        "inline-flex items-center rounded-lg border bg-muted/60 p-0.5",
-        size === "xs" ? "text-[11px]" : "text-xs",
-      )}
-    >
+    <div className="inline-flex items-center rounded-lg border bg-muted/60 p-0.5 text-xs">
       {(["executive", "analyst"] as Persona[]).map((p) => (
         <button
           key={p}
@@ -56,7 +43,7 @@ function PersonaToggle({
           aria-pressed={persona === p}
           onClick={() => onChange(p)}
           className={cn(
-            "rounded-md px-2.5 py-1 font-medium transition-colors",
+            "rounded-md px-2 py-1 font-medium transition-colors",
             persona === p ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
           )}
         >
@@ -67,18 +54,37 @@ function PersonaToggle({
   );
 }
 
+function Section({ label, children, accent }: { label: string; children: string; accent?: boolean }) {
+  return (
+    <section className={cn(accent && "rounded-lg border border-primary/20 bg-primary/5 p-2.5")}>
+      <p
+        className={cn(
+          "font-medium text-[11px] uppercase tracking-wide",
+          accent ? "text-primary" : "text-muted-foreground",
+        )}
+      >
+        {label}
+      </p>
+      <p className="mt-0.5 text-sm leading-snug">{children}</p>
+    </section>
+  );
+}
+
 // ── Controller + spotlight overlay + guide card ──────────────────────────────
 export function Walkthrough() {
-  const { active, index, persona, stop, next, prev, goTo, setPersona, restart, hydrate } = useWalkthrough();
+  const { active, index, persona, stop, next, prev, goToUseCase, setPersona, reset, hydrate } = useWalkthrough();
   const router = useRouter();
   const [mounted, setMounted] = React.useState(false);
   const [rect, setRect] = React.useState<DOMRect | null>(null);
 
-  const chapter = CHAPTERS[index];
-  const content = chapter?.[persona];
+  const step = STEPS[index];
+  const content = step?.[persona];
+  const useCase = stepUseCase(index);
+  const useCaseTitle = USE_CASES.find((u) => u.id === useCase)?.title ?? "";
+  const { x: stepX, y: stepY } = stepNumber(index);
 
-  // Mount + hydrate persona/progress from localStorage, and honor a shareable
-  // deep link (?tour=1&persona=analyst&chapter=3). Never auto-opens from storage.
+  // Mount + hydrate from localStorage; honor a shareable deep link
+  // (?tour=1&persona=analyst&step=3). Never auto-opens from storage alone.
   React.useEffect(() => {
     setMounted(true);
     const patch: Partial<{ active: boolean; index: number; persona: Persona }> = {};
@@ -90,15 +96,15 @@ export function Walkthrough() {
         if (typeof saved.index === "number") patch.index = saved.index;
       }
     } catch {
-      /* ignore unreadable storage */
+      /* ignore */
     }
     try {
       const sp = new URLSearchParams(window.location.search);
       const urlPersona = sp.get("persona");
       if (urlPersona === "executive" || urlPersona === "analyst") patch.persona = urlPersona;
-      const chapterParam = sp.get("chapter");
-      if (chapterParam) {
-        const n = Number.parseInt(chapterParam, 10);
+      const stepParam = sp.get("step");
+      if (stepParam) {
+        const n = Number.parseInt(stepParam, 10);
         if (!Number.isNaN(n)) patch.index = n - 1;
       }
       if (sp.get("tour") === "1") patch.active = true;
@@ -117,17 +123,17 @@ export function Walkthrough() {
     }
   }, [persona, index]);
 
-  // Navigate to the current chapter's route on start and whenever the chapter
-  // changes. Persona switches are deliberately NOT a dependency, so toggling
-  // persona updates the card in place without navigating or resetting progress.
+  // Navigate on start and whenever the step changes. Persona is intentionally not a
+  // dependency, so toggling it updates the card in place without navigating.
   React.useEffect(() => {
-    if (!active || !chapter) return;
-    router.push(chapter.path);
-  }, [active, chapter, router]);
+    if (!active || !step) return;
+    router.push(step.path);
+  }, [active, step, router]);
 
-  // Locate + spotlight the chapter's anchor once the route has rendered.
+  // Locate + spotlight the step's anchor once the route has rendered (optionally
+  // clicking an element first, e.g. to open a drawer).
   React.useEffect(() => {
-    if (!active || !chapter) return;
+    if (!active || !step) return;
     let cancelled = false;
     let raf = 0;
     let tries = 0;
@@ -135,7 +141,11 @@ export function Walkthrough() {
     setRect(null);
     const find = () => {
       if (cancelled) return;
-      const el = document.querySelector<HTMLElement>(`[data-tour="${chapter.anchor}"]`);
+      if (step.autoClick) {
+        const toClick = document.querySelector<HTMLElement>(step.autoClick);
+        toClick?.click();
+      }
+      const el = document.querySelector<HTMLElement>(`[data-tour="${step.anchor}"]`);
       if (el) {
         el.scrollIntoView({ block: "center", inline: "nearest", behavior: "smooth" });
         settle = window.setTimeout(() => {
@@ -144,22 +154,22 @@ export function Walkthrough() {
         return;
       }
       tries += 1;
-      if (tries < 180) raf = requestAnimationFrame(find); // ~3s budget while the route loads
+      if (tries < 180) raf = requestAnimationFrame(find);
     };
-    const kick = window.setTimeout(find, 120);
+    const kick = window.setTimeout(find, 140);
     return () => {
       cancelled = true;
       cancelAnimationFrame(raf);
       window.clearTimeout(kick);
       window.clearTimeout(settle);
     };
-  }, [active, chapter]);
+  }, [active, step]);
 
-  // Keep the spotlight aligned while scrolling/resizing on the current chapter.
+  // Keep the spotlight aligned while scrolling/resizing.
   React.useEffect(() => {
-    if (!active || !chapter || !rect) return;
+    if (!active || !step || !rect) return;
     const update = () => {
-      const el = document.querySelector<HTMLElement>(`[data-tour="${chapter.anchor}"]`);
+      const el = document.querySelector<HTMLElement>(`[data-tour="${step.anchor}"]`);
       if (el) setRect(el.getBoundingClientRect());
     };
     window.addEventListener("scroll", update, true);
@@ -168,9 +178,9 @@ export function Walkthrough() {
       window.removeEventListener("scroll", update, true);
       window.removeEventListener("resize", update);
     };
-  }, [active, chapter, rect]);
+  }, [active, step, rect]);
 
-  // Esc closes the tour.
+  // Esc exits the tour.
   React.useEffect(() => {
     if (!active) return;
     const onKey = (e: KeyboardEvent) => {
@@ -180,19 +190,21 @@ export function Walkthrough() {
     return () => window.removeEventListener("keydown", onKey);
   }, [active, stop]);
 
-  if (!mounted || !active || !chapter || !content) return null;
+  if (!mounted || !active || !step || !content) return null;
 
-  const isLast = index === CHAPTERS.length - 1;
+  const isLast = index === STEPS.length - 1;
   const pad = 8;
+  // When the spotlight sits on the right half of the screen (e.g. the node inspector
+  // drawer), move the card to the left so it does not cover the highlighted panel.
+  const cardOnLeft = rect ? rect.left + rect.width / 2 > window.innerWidth / 2 : false;
 
   return (
     <>
-      {/* Spotlight: a cutout over the anchor (box-shadow dims everything else).
-          pointer-events-none keeps the real UI clickable so the guided action works. */}
+      {/* Spotlight overlay (pointer-events-none so the real UI stays clickable). */}
       <div className="pointer-events-none fixed inset-0 z-[90]" aria-hidden>
         {rect ? (
           <div
-            className="absolute rounded-lg ring-2 ring-primary ring-offset-2 ring-offset-transparent transition-all duration-300"
+            className="absolute rounded-lg ring-2 ring-primary ring-offset-2 transition-all duration-300"
             style={{
               top: Math.max(0, rect.top - pad),
               left: Math.max(0, rect.left - pad),
@@ -209,100 +221,96 @@ export function Walkthrough() {
       {/* Guide card */}
       <div
         role="dialog"
-        aria-label={t("Guided walkthrough")}
+        aria-label={t("Guided Walkthrough")}
         className={cn(
-          "pointer-events-auto fixed z-[95] flex flex-col gap-3 rounded-xl border bg-background p-4 shadow-2xl",
-          "right-4 bottom-4 left-4 w-auto sm:left-auto sm:w-[380px] sm:max-w-[calc(100vw-2rem)]",
+          "pointer-events-auto fixed z-[95] flex max-h-[85vh] flex-col gap-3 overflow-y-auto rounded-xl border bg-background p-4 shadow-2xl",
+          "right-4 bottom-4 left-4 w-auto sm:w-[400px] sm:max-w-[calc(100vw-2rem)]",
+          // Flip to the opposite side of the spotlight so a right-side drawer stays visible.
+          cardOnLeft ? "sm:right-auto sm:left-4" : "sm:left-auto sm:right-4",
         )}
       >
-        {/* Header: chapter + persona toggle + close */}
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5 text-muted-foreground text-xs">
-              <Compass className="size-3.5" />
-              <span className="font-medium">
-                {t("Chapter {n} of {total}", { n: String(index + 1), total: String(CHAPTERS.length) })}
-              </span>
-            </div>
-            <h2 className="mt-0.5 truncate font-semibold text-sm">{chapter.title}</h2>
-          </div>
+        {/* Header: use-case switcher + persona + exit */}
+        <div className="flex items-center justify-between gap-2">
+          <select
+            aria-label={t("Use case")}
+            className="min-w-0 flex-1 truncate rounded-md border bg-background px-2 py-1 font-medium text-xs"
+            value={useCase}
+            onChange={(e) => goToUseCase(Number(e.target.value))}
+          >
+            {USE_CASES.map((u) => (
+              <option key={u.id} value={u.id} disabled={!u.available}>
+                {t("Use Case {n}", { n: String(u.id) })} · {u.title}
+                {u.available ? "" : ` (${t("soon")})`}
+              </option>
+            ))}
+          </select>
           <button
             type="button"
-            aria-label={t("Close")}
+            aria-label={t("Exit tour")}
             onClick={stop}
-            className="-mt-1 -mr-1 shrink-0 rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+            className="shrink-0 rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
           >
             <X className="size-4" />
           </button>
         </div>
 
-        <PersonaToggle persona={persona} onChange={setPersona} />
-
-        {/* Body: three tailored sections */}
-        <div className="flex flex-col gap-2.5">
-          <section>
-            <p className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">
-              {t("What you're looking at")}
-            </p>
-            <p className="mt-0.5 font-semibold text-sm">{content.headline}</p>
-            <p className="mt-0.5 text-muted-foreground text-sm leading-snug">{content.summary}</p>
-          </section>
-          <section className="rounded-lg border border-primary/20 bg-primary/5 p-2.5">
-            <p className="font-medium text-[11px] text-primary uppercase tracking-wide">{t("Try this")}</p>
-            <p className="mt-0.5 text-sm leading-snug">{content.action}</p>
-          </section>
-          <section>
-            <p className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">
-              {t("Why it matters")}
-            </p>
-            <p className="mt-0.5 text-muted-foreground text-sm leading-snug">{content.takeaway}</p>
-          </section>
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-muted-foreground text-xs">
+            {t("Step {x} of {y}", { x: String(stepX), y: String(stepY) })}
+          </span>
+          <PersonaToggle persona={persona} onChange={setPersona} />
         </div>
 
-        {/* Footer: nav + dots + restart */}
+        <h2 className="font-semibold text-sm leading-tight">{step.headline}</h2>
+
+        {/* Four structured sections */}
+        <div className="flex flex-col gap-2.5">
+          <Section label={t("Business Problem")}>{content.businessProblem}</Section>
+          <Section label={t("ARTEX Value")}>{content.artexValue}</Section>
+          <Section label={t("What you're looking at")}>{content.lookingAt}</Section>
+          <Section label={t("Guided Action")} accent>
+            {content.action}
+          </Section>
+        </div>
+
+        {/* Footer: Back / dots / Reset Demo / Next */}
         <div className="flex items-center justify-between gap-2 pt-0.5">
-          <div className="flex items-center gap-1">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              aria-label={t("Previous")}
-              disabled={index === 0}
-              onClick={prev}
-            >
-              <ChevronLeft className="size-4" />
-            </Button>
-            <div className="flex items-center gap-1" aria-hidden>
-              {CHAPTERS.map((c, i) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => goTo(i)}
-                  aria-label={t("Go to chapter {n}", { n: String(i + 1) })}
-                  className={cn(
-                    "size-1.5 rounded-full transition-all",
-                    i === index ? "w-4 bg-primary" : "bg-muted-foreground/30 hover:bg-muted-foreground/60",
-                  )}
-                />
-              ))}
-            </div>
+          <Button type="button" variant="ghost" size="sm" className="gap-1" disabled={index === 0} onClick={prev}>
+            <ChevronLeft className="size-4" />
+            {t("Back")}
+          </Button>
+          <div className="flex items-center gap-1" aria-hidden>
+            {STEPS.filter((s) => s.useCase === useCase).map((s, i) => (
+              <span
+                key={s.id}
+                className={cn("size-1.5 rounded-full", i === stepX - 1 ? "w-4 bg-primary" : "bg-muted-foreground/30")}
+              />
+            ))}
           </div>
-          <div className="flex items-center gap-1.5">
-            <Button
+          <Button type="button" size="sm" className="gap-1" onClick={next}>
+            {isLast ? t("Finish") : t("Next")}
+            {!isLast && <ChevronRight className="size-4" />}
+          </Button>
+        </div>
+        <div className="flex items-center justify-between gap-2 border-t pt-2 text-muted-foreground text-xs">
+          <span className="truncate">{useCaseTitle}</span>
+          <div className="flex items-center gap-2">
+            <button
               type="button"
-              variant="ghost"
-              size="sm"
-              className="gap-1 text-muted-foreground"
-              onClick={restart}
-              title={t("Restart the walkthrough from chapter 1 (keeps the selected persona)")}
+              onClick={reset}
+              className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 hover:bg-muted hover:text-foreground"
+              title={t("Restart the walkthrough from Use Case 1, Step 1 (keeps the selected persona)")}
             >
-              <RotateCcw className="size-3.5" />
-              {t("Reset")}
-            </Button>
-            <Button type="button" size="sm" className="gap-1" onClick={next}>
-              {isLast ? t("Finish") : t("Next")}
-              {!isLast && <ChevronRight className="size-4" />}
-            </Button>
+              <RotateCcw className="size-3" />
+              {t("Reset Demo")}
+            </button>
+            <button
+              type="button"
+              onClick={stop}
+              className="rounded-md px-1.5 py-0.5 hover:bg-muted hover:text-foreground"
+            >
+              {t("Exit Tour")}
+            </button>
           </div>
         </div>
       </div>

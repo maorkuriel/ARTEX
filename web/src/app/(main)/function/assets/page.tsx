@@ -2,6 +2,8 @@
 
 import * as React from "react";
 
+import { useSearchParams } from "next/navigation";
+
 import {
   BuildingIcon,
   ChevronLeftIcon,
@@ -58,13 +60,15 @@ import {
 } from "@/components/ui/sheet";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { t } from "@/i18n";
 import { api } from "@/lib/api";
 import { parseCompanyScopeText } from "@/lib/company-scope";
 import { httpHref } from "@/lib/http-href";
 import type { Asset, Company, CompanyScopeRule } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useActiveCompanyID } from "@/stores/company/company-store";
-import { t } from "@/i18n";
+
+import { AssetInspector } from "./asset-inspector";
 
 const METHOD_COLOR: Record<string, string> = {
   GET: "bg-emerald-100 text-emerald-700",
@@ -110,14 +114,21 @@ const TABS: { key: string; label: string; icon: LucideIcon }[] = [
   { key: "endpoint", label: t("Endpoints"), icon: LinkIcon },
 ];
 
-export default function AssetsPage() {
+function AssetsPageInner() {
   // The sidebar's company switcher narrows the data tabs to that company.
   const companyId = useActiveCompanyID();
+  const searchParams = useSearchParams();
   const [rows, setRows] = React.useState<Asset[]>([]);
+  // Node inspector drawer: opened by clicking an asset row, or deep-linked via
+  // ?type=<t>&inspect=<id> (used by the guided walkthrough).
+  const [inspect, setInspect] = React.useState<Asset | null>(null);
   const [total, setTotal] = React.useState(0);
   const [companies, setCompanies] = React.useState<Company[]>([]);
   const [counts, setCounts] = React.useState<Record<string, number>>({});
-  const [tab, setTab] = React.useState("company");
+  const [tab, setTab] = React.useState(() => {
+    const p = searchParams.get("type");
+    return p && TABS.some((item) => item.key === p) ? p : "company";
+  });
   const [query, setQuery] = React.useState("");
   const [loaded, setLoaded] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
@@ -232,6 +243,27 @@ export default function AssetsPage() {
     loadMeta();
   }, [loadMeta]);
 
+  // Guided-walkthrough / shareable deep links: ?type selects the tab, ?inspect opens
+  // the node inspector once the matching row is in the loaded page.
+  React.useEffect(() => {
+    const p = searchParams.get("type");
+    if (p && TABS.some((item) => item.key === p)) setTab(p);
+  }, [searchParams]);
+  React.useEffect(() => {
+    const raw = searchParams.get("inspect");
+    if (!raw) return;
+    const id = Number.parseInt(raw, 10);
+    if (Number.isNaN(id)) return;
+    const match = rows.find((a) => a.id === id);
+    if (match) setInspect(match);
+  }, [searchParams, rows]);
+  // Close the inspector when the ?inspect deep-link is removed (e.g. the walkthrough
+  // navigating away from the inspector steps). Keyed on searchParams only, so a
+  // row-click-opened drawer survives pagination/refresh.
+  React.useEffect(() => {
+    if (!searchParams.get("inspect")) setInspect(null);
+  }, [searchParams]);
+
   // Reset query + page + selection when switching tabs
   // biome-ignore lint/correctness/useExhaustiveDependencies: tab changes intentionally reset tab-local controls.
   React.useEffect(() => {
@@ -321,7 +353,8 @@ export default function AssetsPage() {
 
   return (
     <div className="flex h-[calc(100vh-6rem)] min-h-0 flex-col gap-4">
-      <div className="flex items-center justify-between gap-4">
+      <AssetInspector asset={inspect} onClose={() => setInspect(null)} />
+      <div className="flex items-center justify-between gap-4" data-tour="assets-root">
         <div>
           <h1 className="text-xl font-semibold tracking-tight">{t("Assets")}</h1>
         </div>
@@ -342,7 +375,7 @@ export default function AssetsPage() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab} className="flex min-h-0 flex-1 flex-col gap-4">
-        <div className="overflow-x-auto overflow-y-hidden">
+        <div className="overflow-x-auto overflow-y-hidden" data-tour="asset-type-tabs">
           <TabsList variant="default">
             {TABS.map((t) => (
               <TabsTrigger key={t.key} value={t.key}>
@@ -441,7 +474,14 @@ export default function AssetsPage() {
             onToggleAll={(ids) => toggleSelectAll(ids)}
           >
             {slice(tabData("root_domain")).map((a) => (
-              <TableRow key={a.id} className={selected.has(a.id) ? "bg-muted/40" : undefined}>
+              <TableRow
+                key={a.id}
+                className={cn("cursor-pointer", selected.has(a.id) && "bg-muted/40")}
+                onClick={(e) => {
+                  if ((e.target as HTMLElement).closest("button,[role=checkbox],input,a")) return;
+                  setInspect(a);
+                }}
+              >
                 <TableCell className="w-8 pr-0">
                   <Checkbox checked={selected.has(a.id)} onCheckedChange={() => toggleSelect(a.id)} />
                 </TableCell>
@@ -482,7 +522,14 @@ export default function AssetsPage() {
             onToggleAll={(ids) => toggleSelectAll(ids)}
           >
             {slice(tabData("ip")).map((a) => (
-              <TableRow key={a.id} className={selected.has(a.id) ? "bg-muted/40" : undefined}>
+              <TableRow
+                key={a.id}
+                className={cn("cursor-pointer", selected.has(a.id) && "bg-muted/40")}
+                onClick={(e) => {
+                  if ((e.target as HTMLElement).closest("button,[role=checkbox],input,a")) return;
+                  setInspect(a);
+                }}
+              >
                 <TableCell className="w-8 pr-0">
                   <Checkbox checked={selected.has(a.id)} onCheckedChange={() => toggleSelect(a.id)} />
                 </TableCell>
@@ -529,7 +576,14 @@ export default function AssetsPage() {
             onToggleAll={(ids) => toggleSelectAll(ids)}
           >
             {slice(tabData("subdomain")).map((a) => (
-              <TableRow key={a.id} className={selected.has(a.id) ? "bg-muted/40" : undefined}>
+              <TableRow
+                key={a.id}
+                className={cn("cursor-pointer", selected.has(a.id) && "bg-muted/40")}
+                onClick={(e) => {
+                  if ((e.target as HTMLElement).closest("button,[role=checkbox],input,a")) return;
+                  setInspect(a);
+                }}
+              >
                 <TableCell className="w-8 pr-0">
                   <Checkbox checked={selected.has(a.id)} onCheckedChange={() => toggleSelect(a.id)} />
                 </TableCell>
@@ -571,7 +625,14 @@ export default function AssetsPage() {
             onToggleAll={(ids) => toggleSelectAll(ids)}
           >
             {slice(tabData("app")).map((a) => (
-              <TableRow key={a.id} className={selected.has(a.id) ? "bg-muted/40" : undefined}>
+              <TableRow
+                key={a.id}
+                className={cn("cursor-pointer", selected.has(a.id) && "bg-muted/40")}
+                onClick={(e) => {
+                  if ((e.target as HTMLElement).closest("button,[role=checkbox],input,a")) return;
+                  setInspect(a);
+                }}
+              >
                 <TableCell className="w-8 pr-0">
                   <Checkbox checked={selected.has(a.id)} onCheckedChange={() => toggleSelect(a.id)} />
                 </TableCell>
@@ -630,7 +691,14 @@ export default function AssetsPage() {
                 domainCell = a.domain || a.url;
               }
               return (
-                <TableRow key={a.id} className={selected.has(a.id) ? "bg-muted/40" : undefined}>
+                <TableRow
+                  key={a.id}
+                  className={cn("cursor-pointer", selected.has(a.id) && "bg-muted/40")}
+                  onClick={(e) => {
+                    if ((e.target as HTMLElement).closest("button,[role=checkbox],input,a")) return;
+                    setInspect(a);
+                  }}
+                >
                   <TableCell className="w-8 pr-0">
                     <Checkbox checked={selected.has(a.id)} onCheckedChange={() => toggleSelect(a.id)} />
                   </TableCell>
@@ -708,7 +776,14 @@ export default function AssetsPage() {
             onToggleAll={(ids) => toggleSelectAll(ids)}
           >
             {slice(tabData("endpoint")).map((a) => (
-              <TableRow key={a.id} className={selected.has(a.id) ? "bg-muted/40" : undefined}>
+              <TableRow
+                key={a.id}
+                className={cn("cursor-pointer", selected.has(a.id) && "bg-muted/40")}
+                onClick={(e) => {
+                  if ((e.target as HTMLElement).closest("button,[role=checkbox],input,a")) return;
+                  setInspect(a);
+                }}
+              >
                 <TableCell className="w-8 pr-0">
                   <Checkbox checked={selected.has(a.id)} onCheckedChange={() => toggleSelect(a.id)} />
                 </TableCell>
@@ -1242,5 +1317,14 @@ function AppendScopeDialog({ company, onSaved }: { company: Company; onSaved: ()
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// useSearchParams must sit under a Suspense boundary for static export.
+export default function AssetsPage() {
+  return (
+    <React.Suspense fallback={null}>
+      <AssetsPageInner />
+    </React.Suspense>
   );
 }
