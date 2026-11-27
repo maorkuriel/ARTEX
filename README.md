@@ -234,6 +234,10 @@ Users can learn ARTEX without leaving the product, in plain, jargon-light langua
 
 All copy lives in `web/src/lib/docs/content.ts`, so the hub and the drawer always say the same thing.
 
+| Learn ARTEX hub (`/docs`) | "How this works" drawer on a task's Asset coverage tab |
+| :---: | :---: |
+| ![Learn ARTEX documentation hub with search, a table of contents and the "ARTEX in plain English" guide](screenshots/docs/docs-hub.png) | ![The How this works drawer open beside the asset coverage graph, showing the Step-by-step thinking guide](screenshots/docs/docs-help-drawer.png) |
+
 ---
 
 ## Quick start
