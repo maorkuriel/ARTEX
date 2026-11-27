@@ -64,6 +64,10 @@ docker compose logs artex | grep "Setup token"
 > step. For pulling the prebuilt image and all other installation paths (script, binaries,
 > source, release archives), see [Installation](#installation).
 
+> **Demoing ARTEX?** Seed the deterministic demo dataset (`scripts/demo/seed.sh`) and click
+> **Guided Walkthrough** in the header for a 6-use-case, plain-English VMDR tour with Executive
+> and Analyst modes. See [DEMO.md](DEMO.md) and [DEMO_RUNBOOK.md](DEMO_RUNBOOK.md).
+
 ---
 
 ## Multi-provider workers

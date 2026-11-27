@@ -111,14 +111,14 @@ RECEIPTS = [
 
 snap_rows = []
 binding_rows = []
-captured = 1763000000000  # fixed epoch ms, deterministic
+captured = 1794549600  # fixed epoch seconds (2026-11-13T06:00Z), deterministic; UI reads seconds
 for i, (sid, url, method, status, ctype, rhead, rbody, phead, pbody) in enumerate(
     RECEIPTS
 ):
     req_hash, req_len = write_blob(rbody)
     resp_hash, resp_len = write_blob(pbody)
     snap_rows.append(
-        f"('{sid}','traffic-{sid}',{captured + i * 1000},'{q(url)}','{method}',{status},"
+        f"('{sid}','traffic-{sid}',{captured + i * 60},'{q(url)}','{method}',{status},"
         f"'{q(ctype)}','{q(rhead)}','{q(phead)}','{req_hash}','{resp_hash}',{req_len},{resp_len})"
     )
 
@@ -1705,6 +1705,25 @@ w("""INSERT INTO finding_retests (id,finding_id,conversation_id,status,verdict,n
   'Still exploitable: callback fired and `id` returned www-data.',
   'POST /api/import @type gadget -> LDAP callback to 10.8.0.5:1389 -> command executed.',
   '2026-11-18T10:00:00Z','2026-11-18T10:00:05Z','2026-11-18T10:03:00Z');""")
+# Use Case 6 ("Proving Fixes Fast"): finding 9006 is the first vulnerability the
+# task-9001 Retests tab auto-selects, so give it a before/after history —
+# pre-fix 200 OK (reproduced) followed by post-fix 403 Forbidden (fixed).
+w(
+    "INSERT INTO conversations (id,agent_key,title) VALUES"
+    " (9002,'retester','Retest: default credentials on admin.acme.com (pre-fix)'),"
+    " (9003,'retester','Retest: default credentials on admin.acme.com (post-fix)');"
+)
+w("""INSERT INTO finding_retests (id,finding_id,conversation_id,status,verdict,notes,snapshot,summary,evidence,created_at,started_at,finished_at) VALUES
+ (9002,9006,9002,'completed','reproduced','Baseline retest before the credential rotation.',
+  '{"vulnclass":"Default credentials","severity":"high","target":"admin.acme.com/login"}'::jsonb,
+  'Still reproducible: admin/admin123 logged in (HTTP 200 OK, session cookie issued).',
+  'POST /login user=admin pass=admin123 -> HTTP/1.1 200 OK, Set-Cookie: admin_session=… -> /admin dashboard rendered.',
+  '2026-11-19T09:00:00Z','2026-11-19T09:00:04Z','2026-11-19T09:00:41Z'),
+ (9003,9006,9003,'completed','fixed','Re-ran the same login after the team rotated the password and enforced SSO.',
+  '{"vulnclass":"Default credentials","severity":"high","target":"admin.acme.com/login"}'::jsonb,
+  'Fixed: the same admin/admin123 login is now rejected (HTTP 403 Forbidden).',
+  'POST /login user=admin pass=admin123 -> HTTP/1.1 403 Forbidden, no session cookie -> /admin redirects to SSO.',
+  '2026-11-21T14:30:00Z','2026-11-21T14:30:03Z','2026-11-21T14:30:22Z');""")
 w()
 
 w(
@@ -1713,7 +1732,8 @@ w(
 w("""INSERT INTO intercept_rules (id,name,enabled,priority,match_target,match_type,pattern,action,message,timeout_seconds,timeout_action) VALUES
  (9001,'Allow read-only recon tools',true,100,'tool_input','argv','["nuclei","-silent"]','allow','Auto-approved: passive recon',60,'deny'),
  (9002,'Ask before sqlmap',true,90,'tool_input','argv','["sqlmap"]','ask','sqlmap can be intrusive — approve per target',120,'deny'),
- (9003,'Deny destructive shell',true,110,'tool_input','regex','rm\\\\s+-rf|mkfs|dd\\\\s+if=','deny','Blocked destructive command',60,'deny');""")
+ (9003,'Deny destructive shell',true,110,'tool_input','regex','rm\\\\s+-rf|mkfs|dd\\\\s+if=','deny','Blocked destructive command',60,'deny'),
+ (9004,'Deny out-of-scope prod database',true,120,'tool_input','string','prod-db.acme.demo.local','deny','Out of scope: production database is off-limits',60,'deny');""")
 w("""INSERT INTO intercept_pending (id,rule_id,task_id,agent_name,tool_name,tool_input,status,reason,decision_source,decided_by,decided_at,target_key,created_at) VALUES
  (9001,9002,'9001','worker','Bash','{"command":"sqlmap -u https://www.acme.com/search?q=1 --batch --dbs"}'::jsonb,'pending','sqlmap can be intrusive — approve per target','rule','', NULL,NULL,'2026-11-14T04:00:00Z'),
  (9002,NULL,'9002','worker','WebFetch','{"url":"https://api.acme.com/v1/orders?id=1002"}'::jsonb,'pending','Target approval required (target gate)','','', NULL,'api.acme.com:443','2026-11-14T02:40:00Z'),

@@ -694,7 +694,7 @@ export default function InterceptPage() {
         </TabsList>
 
         {/* ---- tab: interception rules ---- */}
-        <TabsContent value="rules" className="mt-4 flex flex-col gap-4">
+        <TabsContent value="rules" className="mt-4 flex flex-col gap-4" data-tour="intercept-rules">
           <div className="flex items-center justify-between gap-3">
             <p className="text-xs text-muted-foreground">
               {t("Rules are matched one by one in priority order (higher numbers first); the first match wins")}
