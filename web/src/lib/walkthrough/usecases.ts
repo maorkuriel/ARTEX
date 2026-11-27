@@ -240,11 +240,11 @@ export const STEPS: Step[] = [
       painPoint:
         "“We scanned everything” is dangerous. Many assets get discovered but never actually tested, and those blind spots are where breaches hide.",
       lookingAt:
-        "A map of everything in scope for this engagement. The top-left counter reads In scope 13 · Tested 3. Green dots were actually tested; gray dots were only discovered.",
+        "A map of everything in scope for this engagement. The top-left counter reads In scope 13 · Tested 3. Assets drawn in color were actually tested; gray ones were only discovered.",
       howArtex:
         "ARTEX tracks which assets it truly exercised, not just which it found, so untested assets stand out instead of hiding inside a big number.",
       tryThis:
-        "Compare the green (tested) dots with the gray (untested) ones. Every gray dot is a blind spot to test next.",
+        "Compare the colored (tested) nodes with the gray (untested) ones. Every gray node is a blind spot to test next.",
       valueShipped: "An honest picture of what's been validated, so budget goes to the gaps that matter.",
     },
     analyst: {

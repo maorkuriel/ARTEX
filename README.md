@@ -16,7 +16,7 @@ and every finding stays bound to the assets and HTTP traffic that prove it.
 [![Go](https://img.shields.io/github/go-mod/go-version/BaaRai/ARTEX?color=6b34db)](go.mod)
 [![Discord](https://img.shields.io/badge/Discord-join%20the%20server-5865F2?logo=discord&logoColor=white)](https://discord.gg/VKyvMTcgXh)
 
-[Quick start](#quick-start) · [Screenshots](#screenshots) · [How it works](#how-it-works) · [Install](#installation) · [Configuration](#configuration) · [Security](SECURITY.md)
+[VMDR use cases](#vmdr-ecosystem-use-cases) · [Guided walkthrough](#in-product-guided-walkthrough) · [Quick start](#quick-start) · [How it works](#how-it-works) · [Architecture](#architecture) · [Install](#installation) · [Configuration](#configuration) · [Security](SECURITY.md)
 
 [![Join us on Discord](https://img.shields.io/badge/JOIN%20US%20ON-DISCORD-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/VKyvMTcgXh)
 
@@ -30,16 +30,185 @@ results are written back into **two linked graphs**: one for what you know about
 for how the test is progressing. Every finding can carry the captured request and response that
 justify it, and every autonomous action passes through scope rules, approval gates and budgets.
 
-- **It explores, it doesn't chat.** Goal decomposition, intent dispatch, worker execution and
-  write-back form a closed loop that keeps advancing until the goal is proven.
-- **Two graphs, one audit trail.** The shared asset graph says *what exists*; the per-task
-  exploration graph says *what was tried, what it produced, and why*. Anchors link the two.
-- **Findings with evidence.** A recording MITM proxy and a browser extension capture real traffic;
-  findings, evidence quotes and retests are tied to the exact request/response.
-- **Autonomy with brakes.** Human-in-the-loop approvals, argv-prefix rules, scope/deny gates,
-  token and turn budgets, a target noise governor, and prompt-injection framing on tool output.
+What makes ARTEX different:
+
+- **Autonomous multi-agent validation.** A planner decomposes the goal into intents; workers run
+  real tools (Kali, Bash, HTTP) and write results back. Goal decomposition, intent dispatch, worker
+  execution and write-back form a closed loop that keeps advancing until the goal is proven. It
+  explores; it doesn't chat.
+- **The Dual-Graph Model.** A shared, canonical **Asset Graph** says *what exists* (deduplicated
+  across every task); a per-task **Exploration Graph** says *what was tried, what it produced, and
+  why*. `exploration_anchors` link the two, which is what makes coverage measurable.
+- **Evidence Receipts.** A recording MITM proxy and a browser extension capture real traffic; each
+  finding is bound to the exact request/response that proves it, kept as an encrypted-at-rest
+  snapshot that survives raw-traffic purges.
+- **Three-layer Guardrails.** (1) Scope and target gates decide *where* agents may go;
+  (2) interception rules and human approval gates decide *which actions* may run; (3) token/turn
+  budgets and a noise governor decide *how much* and *how fast*. Tool output is framed as untrusted
+  data to blunt prompt injection.
+- **Targeted Retesting.** A dedicated `retester` agent replays a single finding after a fix and
+  records *Still reproducible / Fixed* with fresh evidence, so you get pre-fix vs. post-fix proof
+  without a full rescan.
 - **Self-hosted and model-agnostic.** One Go binary with the Next.js UI embedded, PostgreSQL,
   your own Anthropic/OpenAI-compatible endpoint, or a local Ollama.
+
+---
+
+## VMDR closed-loop workflow
+
+Vulnerability Management, Detection and Response (VMDR) programs stall in the same places: an
+inflated asset inventory, CVE lists with no attack context, findings nobody can reproduce, blind
+spots hidden behind "we scanned everything", fear of testing near production, and fixes that wait
+weeks for the next scan to be confirmed. ARTEX closes that loop end to end:
+
+```mermaid
+flowchart LR
+  A["1. Asset Normalization<br/>Shared Asset Graph"] --> B["2. Coverage and Blind-Spot Mapping<br/>Exploration Anchors"]
+  B --> C["3. Multi-Step Attack Path Chaining<br/>Exploration Graph"]
+  C --> D["4. Proof-Backed Triage<br/>HTTP Evidence Receipts"]
+  D --> E["5. Guardrailed Execution<br/>Scope, Budgets and Approval Gates"]
+  E --> F["6. Targeted Remediation Retest<br/>Pre-fix vs. Post-fix Proof"]
+  F -. "new observations and re-opened findings" .-> A
+```
+
+Every stage writes to the same two graphs, so the output of one stage is the input of the next:
+retest verdicts update findings, findings stay anchored to canonical assets, and coverage is
+recomputed from what was actually exercised.
+
+---
+
+## VMDR ecosystem use cases
+
+| # | Use case | ARTEX capability | Pain point | Value shipped |
+|---|----------|------------------|------------|---------------|
+| 1 | [Asset Normalization & Deduplication](#1-asset-normalization--deduplication) | Shared Asset Graph | The same endpoint is counted and tested 3× by 3 tools | One canonical record per asset, no double-counting |
+| 2 | [Multi-Step Attack Path Chains](#2-multi-step-attack-path-chains) | Exploration Graph lineage | Flat CVE lists hide which weaknesses chain into a breach | Fix the chain that actually leads to impact first |
+| 3 | [Proof-Backed Triage & False-Positive Elimination](#3-proof-backed-triage--false-positive-elimination) | Evidence & traffic receipts | Days lost arguing over alerts that can't be reproduced | Day-one reproduction proof for every confirmed finding |
+| 4 | [Coverage & Blind-Spot Analysis](#4-coverage--blind-spot-analysis) | Tested vs. untested via exploration anchors | "Discovered" is silently reported as "tested" | An honest, per-asset map of what still needs testing |
+| 5 | [Guardrailed Execution & Governance](#5-guardrailed-execution--governance) | Scope rules, budgets, human approval gates | Automated testing near production feels unsafe | Autonomy inside limits you set, with human sign-off |
+| 6 | [Closing the Remediation Loop](#6-closing-the-remediation-loop) | Targeted retest sessions | Confirming a fix waits weeks for the next full scan | Pre-fix vs. post-fix proof in minutes |
+
+The screenshots below come from the deterministic demo dataset (`scripts/demo/seed.sh`), with the
+[in-product Guided Walkthrough](#in-product-guided-walkthrough) open where it adds context.
+
+### 1. Asset Normalization & Deduplication
+
+*Shared Asset Graph*
+
+- **The Pain Point.** Three discovery tools report the same endpoint three different ways. It gets
+  counted, ticketed and re-tested three times, wasting budget and skewing every metric.
+- **How ARTEX Solves It.** Agents only submit raw observations; the program normalizes each one to a
+  deterministic deduplication key (mirroring the `uq_av2_*` unique indexes) and places it in the
+  `root_domain → subdomain → ip → service → app → endpoint` hierarchy. Re-observations merge onto
+  the same canonical id, and the node keeps the list of tasks that reported it plus every finding
+  attached to it.
+- **Value Shipped.** One canonical record per real asset, shared by every task: exposure is
+  tracked, fixed and measured exactly once.
+
+![Asset inspector: dedup key, lineage, 3 merged task observations and 2 findings from different tasks on canonical endpoint #9210](screenshots/vmdr/vmdr-1-asset-graph.png)
+
+### 2. Multi-Step Attack Path Chains
+
+*Exploration Graph lineage*
+
+- **The Pain Point.** A flat list of thousands of CVEs hides the handful of weaknesses that
+  actually chain together to reach crown-jewel data.
+- **How ARTEX Solves It.** Every step of the test is a node in the task's exploration graph
+  (`goal → intent → fact → finding → hint`) joined by typed edges (`spawns`, `derived_from`,
+  `yields`, `proves`). The planner keeps a durable todolist so multi-step chains (injection →
+  credentials → lateral movement) advance only when their prerequisites are proven.
+- **Value Shipped.** A reproducible attack narrative you can hand to engineering, so the team
+  fixes the chain that leads to a real breach first.
+
+![Exploration graph for task 9001: start, goals, intents, facts, a digest and three vulnerabilities linked by spawns, yields and proves edges](screenshots/vmdr/vmdr-2-attack-path.png)
+
+### 3. Proof-Backed Triage & False-Positive Elimination
+
+*Evidence & traffic receipts*
+
+- **The Pain Point.** Engineers waste days arguing over scanner alerts that turn out to be false,
+  and auditors ask for proof the team doesn't have.
+- **How ARTEX Solves It.** All worker traffic flows through the recording proxy. A finding is
+  marked `verified` only when a bound request/response and verbatim evidence quotes support it.
+  The receipt (request, response, status) is kept as an encrypted snapshot even after raw traffic
+  is purged, and the finding's exploration graph shows the worker trace that produced it.
+- **Value Shipped.** Developers get proof they can reproduce on day one; nobody spends time on false
+  alarms.
+
+![Traffic evidence receipt for a Critical, Verified L4 Fastjson RCE finding: the captured POST /api/import request](screenshots/vmdr/vmdr-3-evidence-receipt.png)
+
+### 4. Coverage & Blind-Spot Analysis
+
+*Tested vs. untested via exploration anchors*
+
+- **The Pain Point.** "We scanned everything" is dangerous: many assets are discovered but never
+  actually tested, and those blind spots are where breaches hide.
+- **How ARTEX Solves It.** `exploration_anchors(node_id, asset_id)` tie each intent, fact and finding
+  to the concrete assets it touched. An in-scope asset only counts as tested when the agent
+  actually worked on it; the coverage ledger and force-directed coverage graph highlight tested
+  assets and leave untested ones gray.
+- **Value Shipped.** An honest, defensible picture of what has been validated, so the next test
+  (and the budget) goes to the gaps that matter.
+
+![Asset coverage graph for task 9001: In scope 13, Tested 3; tested assets highlighted in color, untested in gray](screenshots/vmdr/vmdr-4-coverage.png)
+
+### 5. Guardrailed Execution & Governance
+
+*Scope rules, budgets & human approval gates*
+
+- **The Pain Point.** Letting an automated tool test near production is scary: one wrong command
+  against the wrong host can cause an outage.
+- **How ARTEX Solves It.** Every tool call passes through the interception gate: rules match by
+  string, regex or argv prefix and resolve to **Allow**, **Block** or **Ask** (highest priority
+  first). In the demo, `prod-db.acme.demo.local` is blocked outright and `sqlmap` waits for a human
+  decision with a fail-closed timeout. Scope rows bound where agents may go, and
+  `ARTEX_TASK_BUDGET_*` / `ARTEX_INTENT_BUDGET_*` cap tokens and turns. Every decision records who
+  made it (`human`, `rule`, `model` or `system`).
+- **Value Shipped.** Autonomous validation near production with limits you set and a human in the
+  loop for the risky moments.
+
+| Interception rules (prod-db blocked, sqlmap requires approval) | Pending human approval gate |
+| :---: | :---: |
+| ![Interception rules ordered by priority, with Deny out-of-scope prod database at the top](screenshots/vmdr/vmdr-5-guardrail-rules.png) | ![A pending sqlmap request on task 9001 awaiting Approve selected or Deny selected](screenshots/vmdr/vmdr-5-approval-gate.png) |
+
+### 6. Closing the Remediation Loop
+
+*Targeted retest sessions*
+
+- **The Pain Point.** After a fix ships, proving it worked usually means waiting weeks for the next
+  full-environment scan, and ad-hoc re-tests lose the original payload.
+- **How ARTEX Solves It.** **Retest** starts a scoped `retester` session that replays the finding
+  against the patched asset, captures fresh evidence and records a verdict (*Still reproducible /
+  Fixed / Cannot confirm*), keeping every retest's history next to the original evidence.
+- **Value Shipped.** Fix confirmation in minutes, with side-by-side proof: here, the same
+  `admin/admin123` login returned **200 OK** before the fix and **403 Forbidden** after it.
+
+![Retest history for "Admin console uses default credentials": #9002 Still reproducible (200 OK) and #9003 Fixed (403 Forbidden), with the Analyst walkthrough card](screenshots/vmdr/vmdr-6-retest.png)
+
+---
+
+## In-Product Guided Walkthrough
+
+ARTEX ships a guided tour of these six use cases inside the product, written in plain English for
+two audiences:
+
+1. Seed the demo data and restart the server (see [Quick start](#quick-start)).
+2. Click **Guided Walkthrough** (compass icon) in the top header. A card docks beside the screen
+   and the tour navigates and spotlights the exact UI each step describes.
+3. Toggle **Executive (CISO)** for business outcomes or **Analyst (SecEng)** for the mechanics.
+   The copy swaps in place without losing your position.
+4. The six chapters follow the use cases above: *Taming Asset Sprawl* (1), *Finding Real Attack
+   Paths* (2), *Eliminating False Positives with Proof* (3), *Spotting Testing Blind Spots* (4),
+   *Safe Testing with Guardrails* (5) and *Proving Fixes Fast* (6), 10 steps in total.
+5. Each step shows **The Pain Point**, **What You're Looking At**, **How ARTEX Helps** (with a
+   **Try This** action) and **Value Shipped**. Use **Back / Next**, the use-case switcher to jump
+   between the six chapters, **Reset Demo** to return to Use Case 1, Step 1, and **Exit Tour**
+   (or Esc) to close.
+6. Share a deep link to any step:
+   `http://localhost:8787/function/assets/?tour=1&step=6&persona=analyst`.
+
+Step-by-step screens, seeded IDs and reset notes are in [DEMO.md](DEMO.md); local setup, both
+run modes and troubleshooting are in [DEMO_RUNBOOK.md](DEMO_RUNBOOK.md).
 
 ---
 
@@ -64,9 +233,25 @@ docker compose logs artex | grep "Setup token"
 > step. For pulling the prebuilt image and all other installation paths (script, binaries,
 > source, release archives), see [Installation](#installation).
 
-> **Demoing ARTEX?** Seed the deterministic demo dataset (`scripts/demo/seed.sh`) and click
-> **Guided Walkthrough** in the header for a 6-use-case, plain-English VMDR tour with Executive
-> and Analyst modes. See [DEMO.md](DEMO.md) and [DEMO_RUNBOOK.md](DEMO_RUNBOOK.md).
+### Demo mode (seeded data + Guided Walkthrough)
+
+With the stack running, load the deterministic demo dataset, then restart `artex` so the seeded
+tasks are loaded. Seeding only writes database rows (ids ≥ 9000, safe to re-run) for fictional
+companies with `*.demo.local` hosts and RFC 5737 documentation IPs; it never contacts a target.
+
+```bash
+scripts/demo/seed.sh
+docker compose restart artex
+```
+
+Open **http://localhost:8787** and click **Guided Walkthrough**. For a backend-free UI preview with
+mock data instead:
+
+```bash
+cd web && NEXT_PUBLIC_MOCK=1 npm run dev
+```
+
+See [DEMO.md](DEMO.md) and [DEMO_RUNBOOK.md](DEMO_RUNBOOK.md) for the full demo guide.
 
 ---
 
@@ -952,6 +1137,27 @@ flowchart TB
 | **agent** | goals / planner / worker / mainagent; `ToolSet` exposes the dual graphs as LLM tools |
 | **db** | PostgreSQL persistence (pgx); embedded schema and numbered migrations applied at startup |
 | **Supporting** | Recording MITM proxy, approval gate, async enrichment, MCP/skills/memory/report |
+
+### Repository layout
+
+| Path | Contents |
+| --- | --- |
+| `cmd/artex` | Process entry point (flags, startup, graceful drain) |
+| `server/` | HTTP API (~270 routes), JWT auth, SSE, task `Manager` and `Engine` |
+| `agent/` | LLM roles (`goals`, `planner`, `worker`, `mainagent`, `retester`) and the dual-graph `ToolSet` |
+| `db/` | PostgreSQL persistence, `schema.sql` and numbered `migrations/` |
+| `traffic/`, `evidence/` | Recording MITM proxy, replay/rewrite, and the evidence snapshot store |
+| `intercept/`, `guard/`, `hardening/` | Approval gate (rules, argv grammar, target gate) and its hook wiring; baseline rule set |
+| `egress/` | Noise governor (per-host pacing, backoff) |
+| `llmpool/`, `llmrec/` | Provider pool with rotation/failover; LLM call recording |
+| `enrich/`, `mcphttp/`, `notify/`, `report/`, `sidequestion/`, `archivestore/` | DNS/HTTP enrichment, MCP client, notifications, reports, operator Q&A, task archive storage |
+| `config/` | Config file + environment resolution |
+| `skills/` | Skill definitions (`SKILL.md` per directory) |
+| `web/` | Next.js 16 / React 19 UI (static export embedded with `go:embed`), incl. the Guided Walkthrough |
+| `extension/` | Browser extension for authenticated traffic capture |
+| `scripts/` | CI/verify helpers and `scripts/demo/` (deterministic demo seed and reset) |
+| `docs/` | Architecture, operations and traffic subsystem docs |
+| `screenshots/` | README images (`screenshots/vmdr/` for the use-case walkthrough) |
 
 For the code-level map (execution flow, trust boundaries, decisions) see
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md); for startup, configuration precedence,

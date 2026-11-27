@@ -49,10 +49,14 @@ are the deterministic seed rows the step deep-links to.
 | 1.4 | | Asset inspector `#9210` | Findings from two different tasks (IDOR from 9006, stack trace from 9005) on the same node. |
 | 2.1 | **Finding Real Attack Paths** | Task `9001` → Exploration graph | Start → intent → fact → finding → Goal chain (2 goals, 3 findings) joined by 2 `proves` edges. |
 | 3.1 | **Eliminating False Positives with Proof** | Finding `9005` detail | Critical Fastjson RCE, *Verified L4*, Linked traffic `POST /api/import → 200` (View message), Exploration-graph tab = worker trace. |
-| 4.1 | **Spotting Testing Blind Spots** | Task `9001` → Asset coverage | *In scope 13 · Tested 3*: green = tested, gray = discovered but never tested. |
+| 4.1 | **Spotting Testing Blind Spots** | Task `9001` → Asset coverage | *In scope 13 · Tested 3*: tested assets are highlighted in color, untested ones are gray. |
 | 5.1 | **Safe Testing with Guardrails** | System → Interception rules | Top rule (priority 120) **blocks `prod-db.acme.demo.local`**; deny destructive shell; allow nuclei; ask before sqlmap. |
 | 5.2 | | Task `9001` → Interception approval | A pending `sqlmap` request waiting for a human **Approve / Deny** (120 s timeout → deny). |
 | 6.1 | **Proving Fixes Fast** | Task `9001` → Retests | Finding 9006 (default creds): retest `#9002` *Still reproducible* (200 OK) → retest `#9003` *Fixed* (403 Forbidden); **Start retest** runs a new one. |
+
+README-ready screenshots of each use case (1600×1000, light mode) live in
+[`screenshots/vmdr/`](screenshots/vmdr/) and are embedded in the
+[README's VMDR section](README.md#vmdr-ecosystem-use-cases).
 
 > Deciding the pending approval in step 5.2 changes real data. Re-run `scripts/demo/seed.sh`
 > to put it back (the seed is idempotent and only touches ids ≥ 9000). **Reset Demo** on the card

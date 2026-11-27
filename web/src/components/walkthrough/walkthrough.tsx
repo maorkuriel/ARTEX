@@ -147,7 +147,10 @@ export function Walkthrough() {
       }
       const el = document.querySelector<HTMLElement>(`[data-tour="${step.anchor}"]`);
       if (el) {
-        el.scrollIntoView({ block: "center", inline: "nearest", behavior: "smooth" });
+        // Tall anchors (a whole tab/table) align to the top so the first rows, which the
+        // card usually talks about, are in view; short anchors are centered.
+        const tall = el.getBoundingClientRect().height > window.innerHeight * 0.6;
+        el.scrollIntoView({ block: tall ? "start" : "center", inline: "nearest", behavior: "smooth" });
         settle = window.setTimeout(() => {
           if (!cancelled) setRect(el.getBoundingClientRect());
         }, 320);
