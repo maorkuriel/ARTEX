@@ -263,14 +263,21 @@ export function Walkthrough() {
 
         <h2 className="font-semibold text-sm leading-tight">{step.headline}</h2>
 
-        {/* Four structured sections */}
+        {/* Four plain-English, labeled sections */}
         <div className="flex flex-col gap-2.5">
-          <Section label={t("Business Problem")}>{content.businessProblem}</Section>
-          <Section label={t("ARTEX Value")}>{content.artexValue}</Section>
+          <Section label={t("The Pain Point")}>{content.painPoint}</Section>
           <Section label={t("What you're looking at")}>{content.lookingAt}</Section>
-          <Section label={t("Guided Action")} accent>
-            {content.action}
-          </Section>
+          <section>
+            <p className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">
+              {t("How ARTEX helps")}
+            </p>
+            <p className="mt-0.5 text-sm leading-snug">{content.howArtex}</p>
+            <div className="mt-2 rounded-lg border border-primary/20 bg-primary/5 p-2.5">
+              <p className="font-medium text-[11px] text-primary uppercase tracking-wide">{t("Try this")}</p>
+              <p className="mt-0.5 text-sm leading-snug">{content.tryThis}</p>
+            </div>
+          </section>
+          <Section label={t("Value Shipped")}>{content.valueShipped}</Section>
         </div>
 
         {/* Footer: Back / dots / Reset Demo / Next */}

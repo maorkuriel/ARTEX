@@ -274,6 +274,22 @@ function TaskDetailInner() {
   }, [id]);
 
   const taskLoadInFlight = React.useRef<string | null>(null);
+  // Resilience: a single failed first fetch (e.g. the server briefly restarting, or a
+  // deep-link that races startup) must NOT flash "deleted/does not exist". We keep
+  // showing "Loading…" and let the 5s poll retry, surfacing the not-found state only
+  // after several consecutive failures with no task yet loaded.
+  const failCountRef = React.useRef(0);
+  const hasTaskRef = React.useRef(false);
+  // Reset the retry bookkeeping whenever the viewed task id changes.
+  const resetForIdRef = React.useRef(id);
+  if (resetForIdRef.current !== id) {
+    resetForIdRef.current = id;
+    failCountRef.current = 0;
+    hasTaskRef.current = false;
+  }
+  React.useEffect(() => {
+    if (id) setLoaded(false);
+  }, [id]);
   const load = React.useCallback(() => {
     if (taskLoadInFlight.current === id) return;
     taskLoadInFlight.current = id;
@@ -289,16 +305,19 @@ function TaskDetailInner() {
           base.engine_mode = s?.engine_mode ?? at.engine_mode;
           base.paused = at.paused;
         }
+        hasTaskRef.current = true;
+        failCountRef.current = 0;
         setTask(base);
         setPaused(at?.paused ?? base.paused ?? false);
       })
       .catch(() => {
         // Keep the last rendered task state during a transient poll failure.
+        failCountRef.current += 1;
       })
       .finally(() => {
         if (taskLoadInFlight.current === id) {
           taskLoadInFlight.current = null;
-          setLoaded(true);
+          if (hasTaskRef.current || failCountRef.current >= 3) setLoaded(true);
         }
       });
   }, [id]);
@@ -485,7 +504,7 @@ function TaskDetailInner() {
         <TabsContent value="coverage" className="mt-0" data-tour="task-coverage">
           <CoverageGraphTab taskId={id} coverageEnabled={task?.coverage_enabled !== false} />
         </TabsContent>
-        <TabsContent value="intercept" className="mt-0">
+        <TabsContent value="intercept" className="mt-0" data-tour="task-intercept">
           <InterceptTab taskId={id} />
         </TabsContent>
         <TabsContent value="report" className="mt-0">

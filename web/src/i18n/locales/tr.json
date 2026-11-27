@@ -2756,5 +2756,8 @@
   "Restart the walkthrough from Use Case 1, Step 1 (keeps the selected persona)": "Tanıtımı Senaryo 1, Adım 1'den yeniden başlat (seçili persona korunur)",
   "Step {x} of {y}": "Adım {x} / {y}",
   "Use Case {n}": "Senaryo {n}",
-  "Use case": "Senaryo"
+  "Use case": "Senaryo",
+  "How ARTEX helps": "ARTEX nasıl yardımcı olur",
+  "The Pain Point": "Sorun Noktası",
+  "Value Shipped": "Sağlanan Değer"
 }

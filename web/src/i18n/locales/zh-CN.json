@@ -2756,5 +2756,8 @@
   "Restart the walkthrough from Use Case 1, Step 1 (keeps the selected persona)": "从用例 1、步骤 1 重新开始演示（保留所选角色）",
   "Step {x} of {y}": "步骤 {x} / {y}",
   "Use Case {n}": "用例 {n}",
-  "Use case": "用例"
+  "Use case": "用例",
+  "How ARTEX helps": "ARTEX 如何提供帮助",
+  "The Pain Point": "痛点",
+  "Value Shipped": "交付价值"
 }

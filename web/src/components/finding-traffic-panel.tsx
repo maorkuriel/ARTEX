@@ -97,7 +97,7 @@ export function FindingTrafficPanel({
 
   return (
     <>
-      <Card>
+      <Card data-tour="finding-linked-traffic">
         <CardHeader>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <CardTitle>{t("Linked traffic")} {data ? `(${data.bindings.length})` : ""}</CardTitle>

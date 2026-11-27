@@ -28,21 +28,40 @@ see **[DEMO_RUNBOOK.md](DEMO_RUNBOOK.md)**. This file documents the walkthrough 
 | **Reset Demo** | Restart at Use Case 1, Step 1 (keeps the selected persona). |
 | **Exit Tour** (or ✕ / Esc) | Close the walkthrough (progress is kept in `localStorage`). |
 
-### Four structured sections per step
-1. **Business Problem** — why organizations struggle here.
-2. **ARTEX Value** — the concrete operational & risk outcome.
-3. **What You're Looking At** — the data on screen.
-4. **Guided Action** — the exact click/filter instruction (with a `data-tour` spotlight).
+### Four plain-English sections per step
+1. **The Pain Point** — what frustrates security/engineering teams today, in plain words.
+2. **What You're Looking At** — a concrete guide to the exact numbers/rows/nodes on screen.
+3. **How ARTEX Addresses This VMDR Use Case** (card label: *How ARTEX helps*): what ARTEX is doing here, plus a **Try This** action (click/filter/inspect/approve), with a `data-tour` spotlight.
+4. **Value Shipped** — the tangible outcome delivered to the team.
 
 ---
 
-## Use Case 1 — Asset Normalization & Deduplication
+## The six VMDR use cases (10 steps)
 
-Demonstrated on **Acme Cloud Corp** (`acme.demo.local`), whose attack surface was reported by
-**three** separate discovery/test tasks with overlapping raw observations. ARTEX resolves them
-into single canonical nodes via deterministic dedup keys.
+Every step lands on seeded, populated data (on first load and after **Reset Demo**). IDs below
+are the deterministic seed rows the step deep-links to.
 
-Canonical hierarchy seeded:
+| Step | Use case | Screen it opens | What the viewer sees (seeded data) |
+|------|----------|-----------------|------------------------------------|
+| 1.1 | **Taming Asset Sprawl** | Assets | 31 canonical assets across 3 companies; `acme.demo.local` reported by 3 separate tasks. |
+| 1.2 | | Assets → Endpoints tab | The root-domain → subdomain → IP → service → app → endpoint hierarchy. |
+| 1.3 | | Asset inspector `#9210` | Dedup key for `GET https://api.acme.demo.local/api/v2/invoices/{id}` + **3 merged task observations**. |
+| 1.4 | | Asset inspector `#9210` | Findings from two different tasks (IDOR from 9006, stack trace from 9005) on the same node. |
+| 2.1 | **Finding Real Attack Paths** | Task `9001` → Exploration graph | Start → intent → fact → finding → Goal chain (2 goals, 3 findings) joined by 2 `proves` edges. |
+| 3.1 | **Eliminating False Positives with Proof** | Finding `9005` detail | Critical Fastjson RCE, *Verified L4*, Linked traffic `POST /api/import → 200` (View message), Exploration-graph tab = worker trace. |
+| 4.1 | **Spotting Testing Blind Spots** | Task `9001` → Asset coverage | *In scope 13 · Tested 3*: green = tested, gray = discovered but never tested. |
+| 5.1 | **Safe Testing with Guardrails** | System → Interception rules | Top rule (priority 120) **blocks `prod-db.acme.demo.local`**; deny destructive shell; allow nuclei; ask before sqlmap. |
+| 5.2 | | Task `9001` → Interception approval | A pending `sqlmap` request waiting for a human **Approve / Deny** (120 s timeout → deny). |
+| 6.1 | **Proving Fixes Fast** | Task `9001` → Retests | Finding 9006 (default creds): retest `#9002` *Still reproducible* (200 OK) → retest `#9003` *Fixed* (403 Forbidden); **Start retest** runs a new one. |
+
+> Deciding the pending approval in step 5.2 changes real data. Re-run `scripts/demo/seed.sh`
+> to put it back (the seed is idempotent and only touches ids ≥ 9000). **Reset Demo** on the card
+> resets the *tour* (back to step 1.1, persona kept), not the database.
+
+### Use Case 1 dataset (`acme.demo.local`, Acme Cloud Corp)
+
+Reported by **three** separate discovery/test tasks (9005, 9006, 9007) with overlapping raw
+observations. ARTEX resolves them into single canonical nodes via deterministic dedup keys:
 
 ```
 root_domain  acme.demo.local
@@ -56,41 +75,20 @@ root_domain  acme.demo.local
  └─ subdomain admin-staging.acme.demo.local
 ```
 
-**The 4 steps:**
+### The Asset node inspector
+Clicking any asset row, or deep-linking `?type=<t>&inspect=<assetId>`, opens a right-side
+drawer with the canonical identity, the **deduplication key** (mirrors the `uq_av2_*` unique
+indexes in `db/schema.sql`), parent → child lineage, the contributing tasks (`task_ids`), and the
+findings attached to that node from any task.
 
-| Step | What it shows | Guided action |
-|------|---------------|---------------|
-| **1.1 — The asset-sprawl problem** | The shared Asset Graph for `acme.demo.local`; counts are canonical, not raw. | Note the root scope and per-type counts. |
-| **1.2 — Hierarchical normalization** | The type tabs mirror `root_domain → … → endpoint`. | Open the **Endpoints** tab and find `/api/v2/invoices/{id}`. |
-| **1.3 — Deterministic dedup keys** | The **node inspector** for endpoint `#9210`: computed dedup key + **3 merged task observations**. | Read the Deduplication key and the 3 contributing tasks. |
-| **1.4 — Cross-task enrichment** | Findings from **different tasks** (IDOR from task 9006, stack-trace from task 9005) attach to the **same** canonical node. | See findings from separate tasks resolve to one asset id. |
+### Verifying the walkthrough
+Walk all 10 steps in **both** personas with the deep link, e.g.
+`http://localhost:8787/function/assets/?tour=1&step=1&persona=executive` then **Next** through to **Finish**,
+switching persona on any step (copy swaps in place; the screen does not move). Run
+`scripts/demo/seed.sh` and restart `artex` first so the tasks are loaded.
 
-### The Asset node inspector (new)
-Clicking any asset row — or deep-linking `?type=<t>&inspect=<assetId>` — opens a right-side
-inspector drawer showing:
-- **Canonical identity** (type + `#id`).
-- **Deduplication key** — the uniqueness tuple ARTEX normalizes each raw observation to
-  (mirrors the `uq_av2_*` unique indexes in `db/schema.sql`); re-observations UPSERT onto the
-  same canonical id.
-- **Parent → child lineage** — reconstructed from the node's own fields.
-- **Merged observations** — the contributing tasks (`task_ids`) that independently reported it.
-- **Findings on this canonical node** — findings from any task whose `asset_ids` reference it.
-
----
-
-## Use Cases 2–6 (one step each)
-
-| # | Use case | Screen |
-|---|----------|--------|
-| 2 | Coverage & Blind-Spot Triage | task → Asset-coverage tab |
-| 3 | Multi-Step Attack Paths | task → Exploration-graph tab |
-| 4 | Proof-Backed Triage | Findings (+ evidence receipts) |
-| 5 | Guardrailed Execution | System → Interception rules |
-| 6 | Closing the Remediation Loop | task → Retests tab |
-
-Each carries the same four persona-tailored sections. Chapters 2/3/6 deep-link to the seeded
-`acme.com` task (id `9001`); run `scripts/demo/seed.sh` and restart `artex` so they land on
-populated content.
+> Task-detail pages tolerate a brief backend restart: a failed first fetch keeps showing
+> *Loading…* and retries, instead of flashing “task does not exist”.
 
 ---
 
@@ -102,4 +100,4 @@ populated content.
 | `web/src/lib/walkthrough/store.ts` | Walkthrough state (active / step / persona). |
 | `web/src/components/walkthrough/walkthrough.tsx` | WalkthroughCard, persona toggle, spotlight overlay, header launcher. |
 | `web/src/app/(main)/function/assets/asset-inspector.tsx` | Asset node-inspector drawer (dedup key, lineage, provenance). |
-| `scripts/demo/seed_demo.py` | Deterministic seed, incl. the `acme.demo.local` Use Case 1 dataset. |
+| `scripts/demo/seed_demo.py` | Deterministic seed for every step: `acme.demo.local` assets, evidence receipts, prod-db deny rule, pending approval, before/after retests. |
