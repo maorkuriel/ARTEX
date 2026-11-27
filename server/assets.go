@@ -349,6 +349,10 @@ func (s *Server) listAssets(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 503, "database unavailable")
 		return
 	}
+	// Keep the posture columns current (throttled; failures never block the listing).
+	if s.m != nil && s.m.pg != nil {
+		_ = s.ensurePostureRollup(r.Context(), s.m.pg, false)
+	}
 	q := r.URL.Query()
 	typ := q.Get("type")
 	limit, _ := strconv.Atoi(q.Get("limit"))

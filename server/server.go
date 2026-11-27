@@ -862,6 +862,13 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/assets/counts", s.assetCounts)
 	mux.HandleFunc("POST /api/assets", s.insertAssets)
 	mux.HandleFunc("DELETE /api/assets", s.deleteAssets)
+	// asset-centric posture spine + guardrail audit (additive)
+	mux.HandleFunc("GET /api/posture/summary", s.postureSummary)
+	mux.HandleFunc("POST /api/posture/recompute", s.postureRecompute)
+	mux.HandleFunc("GET /api/assets/{id}/posture", s.assetPosture)
+	mux.HandleFunc("PATCH /api/assets/{id}/metadata", s.assetMetadata)
+	mux.HandleFunc("GET /api/guards/audit", s.guardAudit)
+	mux.HandleFunc("GET /api/guards/budgets", s.guardBudgets)
 
 	// company system
 	mux.HandleFunc("GET /api/companies", s.listCompanies)

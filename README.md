@@ -85,11 +85,11 @@ banner with its pillar, the one question it answers, and where it sits in the op
 
 | Menu pillar | Screens | Answers | Holds (and only holds) |
 |-------------|---------|---------|------------------------|
-| **Posture & Focus** | Focus Queue (`/focus`, the landing page), Overview Dashboard | *Where do I need to focus right now?* | Overall asset security posture grade with its factors, and a ranked queue of next actions |
+| **Posture & Focus** | Focus Queue (`/focus`, the landing page), Overview Dashboard | *Where do I need to focus right now?* | Overall posture score, Tier-1 exposures, validated coverage, blind spots, pending guard approvals, and the ranked "Where to focus now" queue |
 | **Discovered Assets** | Inventory & Asset Graph, Discovery Sources | *What exists in our environment?* | The de-duplicated `root_domain → subdomain → ip → service → app → endpoint` hierarchy, provenance and per-asset posture snapshot |
 | **Coverage Status** | Test Coverage (`/coverage`) | *What has been tested, and what has not?* | Tested vs. untested assets per engagement (from `exploration_anchors`), by asset type, plus open coverage gaps |
 | **Risk Exposure** | Findings & Remediation, HTTP Evidence | *What is actually exposed, and can we prove it?* | Attack paths, confirmed findings, HTTP evidence receipts, mitigation and remediation guidance, and targeted retests |
-| **Scope & Guardrails** | Scope & Interception Rules, Asset Blocklist, Approvals | *What may ARTEX touch, and who signs off?* | Allow/deny/ask rules, the asset blocklist with a rule tester, run budgets and the human approval queue |
+| **Scope & Guardrails** | Scope & Interception Rules, Asset Blocklist, Approvals, Guard Audit Trail | *What may ARTEX touch, and who signs off?* | Allow/deny/ask rules, validation modes, the asset blocklist with a rule tester, budgets, the human approval queue and the append-only guard audit trail |
 
 Below the pillars, **Operations** (tasks, chat, tool execution, LLM recordings, workspace) and
 **System** (LLM, agents, MCP, skills, tools, notifications, logs, settings) hold the machinery, and
@@ -109,14 +109,79 @@ Below the pillars, **Operations** (tasks, chat, tool execution, LLM recordings, 
    authentication or access fix), and the expected post-fix result. **Launch retest** replays
    the original proof to verify closure.
 
-The **Focus Queue** ranks this work: proven critical exposure first, then pending approvals,
-fixes awaiting verification and untested assets, each linking straight to the screen where you
-act. Its posture grade (A–F) lists the factors behind it (open criticals/highs, percent untested)
-and is marked low-confidence when most in-scope assets are untested.
+The **Posture & Focus** workspace is the landing page. A KPI strip shows the Overall Posture
+Score, Tier-1 exposures (critical and high), validated coverage, untested blind spots and pending guard
+approvals. Below it, **Where to focus now** ranks the work in four groups:
 
-| Focus Queue (Posture & Focus) | Test Coverage (Coverage Status) | Mitigation & remediation on a finding (Risk Exposure) |
+1. **Proven exposures needing remediation / mitigation**, linked to the mitigation panel and the
+   HTTP evidence receipts.
+2. **High-criticality blind spots**: Tier-1/Tier-2 assets with zero `exploration_anchors`, each
+   with **Schedule safe validation**, which opens a prefilled read-only validation task.
+3. **Held guard approvals** waiting for human sign-off.
+4. **Fixes awaiting verification**, with a one-click **Launch targeted retest**.
+
+| Posture & Focus | Test Coverage (Coverage Status) | Mitigation & remediation on a finding (Risk Exposure) |
 |---|---|---|
-| ![Focus Queue: posture grade across the five pillars and a ranked list of next actions](screenshots/vmdr/vmdr-focus-queue.png) | ![Test Coverage: tested vs. untested per engagement and by asset type](screenshots/vmdr/vmdr-coverage.png) | ![Mitigate now, Remediate and Verify guidance with Launch retest on a default-credentials finding](screenshots/vmdr/vmdr-remediation.png) |
+| ![Posture & Focus: KPI strip and the four-group Where to focus now queue](screenshots/vmdr/vmdr-focus-queue.png) | ![Test Coverage: tested vs. untested per engagement, by asset type, and high-criticality blind spots](screenshots/vmdr/vmdr-coverage.png) | ![Mitigate now, Remediate and Verify guidance with the affected asset's tier, owner and posture](screenshots/vmdr/vmdr-remediation.png) |
+
+### Asset-centric posture model
+
+Canonical assets are first-class: each carries business context and a live, rolled-up posture.
+
+| Field | Values | Source |
+|-------|--------|--------|
+| `business_criticality` | `tier_1_crown_jewel` · `tier_2_business` (default) · `tier_3_standard` | Operator (inline edit in the asset drawer) |
+| `owner_team` | free text, default `Unassigned` | Operator |
+| `environment` | `production` · `staging` · `development` (or undeclared) | Operator |
+| `validation_mode` | `read_only_validation` · `controlled_active_validation` (or derived) | Operator; derived as read-only for production and Tier-1 |
+| `posture_status` | `critical_exposure` · `high_exposure` · `pending_retest` · `validated_clean` · `unvalidated_blind_spot` | Rollup |
+| `posture_score` | 0–100 | Rollup |
+| `validation_coverage_pct`, `last_validated_at` | share of the subtree with anchors; newest anchor or retest | Rollup |
+
+`RollupHierarchyPosture` aggregates open verified findings, `exploration_anchors` and retests up
+the hierarchy (`endpoint → service → subdomain / ip → root_domain`). The rules are
+deterministic:
+
+- An open critical finding gives `critical_exposure`; an open high or medium finding gives
+  `high_exposure`.
+- A finding under an active retest gives `pending_retest`.
+- `validated_clean` requires every asset in the subtree to be anchored with nothing open.
+- Anything else is an `unvalidated_blind_spot`: untested is never reported as clean.
+
+The score is `100 − weight × (finding penalty + 0.4 × untested %)`. The weight is 1.25 for
+Tier 1, 1.0 for Tier 2 and 0.75 for Tier 3. An asset that was never validated is capped at 50.
+
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /api/posture/summary` | Overall score, counts by status and criticality, Tier-1 exposure, coverage %, pending approvals, fixes awaiting verification / overdue retests, high-value blind spots |
+| `GET /api/assets/{id}/posture` | One asset: posture, effective validation mode, upstream chain, downstream blast radius, linked findings with receipt counts, anchors, recommended steps, recent guard decisions |
+| `PATCH /api/assets/{id}/metadata` | Update `business_criticality`, `owner_team`, `environment`, `validation_mode`, then recompute |
+| `POST /api/posture/recompute` | Force a rollup (reads also refresh it, throttled) |
+
+All existing `/api/...` routes are unchanged. The new columns are additive with safe defaults
+(migration `0015`), and `GET /api/assets` simply returns the extra fields.
+
+### Three-layer guardrails
+
+Every worker tool call passes through `guard.applyIntercept`, and the posture policy runs first:
+
+| Layer | Enforces | Decision |
+|-------|----------|----------|
+| **1 · Scope & non-destructive policy** | Assets in `read_only_validation` (explicit, or derived for production / Tier-1) allow GET/HEAD/OPTIONS and passive probes. State-changing calls are blocked before dispatch: POST/PUT/PATCH/DELETE, request bodies, uploads, and exploitation tools such as sqlmap or hydra. Interception rules and the asset blocklist also apply. | `blocked` (approval cannot override) |
+| **2 · Blast-radius budgets** | Per-task, per-target-host request budget (setting `guard_host_request_budget`, 0 = off; state at `GET /api/guards/budgets`), plus token/turn budgets and the noise governor | `blocked` with the budget reason |
+| **3 · Human in the loop** | Any action on a `tier_1_crown_jewel` asset, a state-changing call crossing into `controlled_active_validation`, and LLM safety-judge escalations | `held_for_approval` → `approved` / `denied` |
+
+Each decision is written to `guard_audit_events`, an append-only table: an `UPDATE` trigger
+rejects edits. Every event records timestamp, actor/worker, task, tool, target, `target_asset_id`,
+layer, `policy_rule`, decision and rationale. You can read the trail at `GET /api/guards/audit` or
+in **Scope & Guardrails → Guard Audit Trail**.
+
+Assets nobody has classified keep the existing rules, so upgrading never changes how
+current tasks run.
+
+| Asset posture drawer (Discovered Assets) | Guard Audit Trail (Scope & Guardrails) |
+|---|---|
+| ![Asset posture panel: Tier 1 crown jewel, owner Platform Billing, posture status, score, coverage and inline editing](screenshots/vmdr/vmdr-asset-posture.png) | ![Guard Audit Trail: three-layer explainer and allowed, blocked, held, approved and denied decisions](screenshots/vmdr/vmdr-guard-audit.png) |
 
 ---
 
@@ -243,9 +308,10 @@ two audiences:
    The copy swaps in place without losing your position.
 4. The six chapters follow the use cases above: *Taming Asset Sprawl* (1), *Finding Real Attack
    Paths* (2), *Eliminating False Positives with Proof* (3), *Spotting Testing Blind Spots* (4),
-   *Safe Testing with Guardrails* (5) and *Proving Fixes Fast* (6), 12 steps in total. Each card
+   *Safe Testing with Guardrails* (5) and *Proving Fixes Fast* (6), 14 steps in total. Each card
    names the menu pillar its screen lives under, and the last chapter walks Mitigate → Remediate →
-   Verify on a real finding before returning to the Focus Queue.
+   Verify on a real finding before returning to Posture & Focus. Use Case 1 ends on the asset
+   posture drawer (criticality, owner, live posture) and Use Case 5 on the Guard Audit Trail.
 5. Each step shows **The Pain Point**, **What You're Looking At**, **How ARTEX Helps** (with a
    **Try This** action) and **Value Shipped**. Use **Back / Next**, the use-case switcher to jump
    between the six chapters, **Reset Demo** to return to Use Case 1, Step 1, and **Exit Tour**

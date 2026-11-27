@@ -58,6 +58,15 @@ type Asset struct {
 	TaskSource        string         `json:"task_source,omitempty"`
 	TaskSourceSummary string         `json:"task_source_summary,omitempty"`
 	TaskSourceNodeID  *int64         `json:"task_source_node_id,omitempty"`
+	// VMDR posture (additive; see asset_posture.go)
+	BusinessCriticality   string  `json:"business_criticality,omitempty"`
+	OwnerTeam             string  `json:"owner_team,omitempty"`
+	Environment           string  `json:"environment,omitempty"`
+	ValidationMode        string  `json:"validation_mode,omitempty"`
+	PostureStatus         string  `json:"posture_status,omitempty"`
+	PostureScore          int     `json:"posture_score"`
+	LastValidatedAt       string  `json:"last_validated_at,omitempty"`
+	ValidationCoveragePct float64 `json:"validation_coverage_pct"`
 }
 
 // AuthItem is one entry in the auth array.
@@ -1104,7 +1113,9 @@ SELECT id, type, company_id, array_to_json(task_ids)::text,
        COALESCE(url,''), COALESCE(service_type,''), COALESCE(service_name,''),
        COALESCE(favicon_mmh3,''), status_code, content_length,
        COALESCE(page_title,''), array_to_json(technologies)::text, array_to_json(auth)::text,
-       COALESCE(method,''), array_to_json(params)::text, extra, last_seen::text
+       COALESCE(method,''), array_to_json(params)::text, extra, last_seen::text,
+       business_criticality, owner_team, COALESCE(environment,''), COALESCE(validation_mode,''),
+       posture_status, posture_score, COALESCE(last_validated_at::text,''), validation_coverage_pct
 FROM assets
 WHERE type = $1
 ORDER BY last_seen DESC, id DESC
@@ -1135,7 +1146,9 @@ func (s *AssetStore) QueryByCompany(companyID int64, typ string, limit, offset i
        COALESCE(url,''), COALESCE(service_type,''), COALESCE(service_name,''),
        COALESCE(favicon_mmh3,''), status_code, content_length,
        COALESCE(page_title,''), array_to_json(technologies)::text, array_to_json(auth)::text,
-       COALESCE(method,''), array_to_json(params)::text, extra, last_seen::text
+       COALESCE(method,''), array_to_json(params)::text, extra, last_seen::text,
+       business_criticality, owner_team, COALESCE(environment,''), COALESCE(validation_mode,''),
+       posture_status, posture_score, COALESCE(last_validated_at::text,''), validation_coverage_pct
 FROM assets WHERE company_id = $1`
 	args := []any{companyID}
 	if typ != "" {
@@ -1187,7 +1200,9 @@ func (s *AssetStore) QueryByTask(taskID int64, typ string, limit, offset int) ([
        COALESCE(url,''), COALESCE(service_type,''), COALESCE(service_name,''),
        COALESCE(favicon_mmh3,''), status_code, content_length,
        COALESCE(page_title,''), array_to_json(technologies)::text, array_to_json(auth)::text,
-       COALESCE(method,''), array_to_json(params)::text, extra, last_seen::text
+       COALESCE(method,''), array_to_json(params)::text, extra, last_seen::text,
+       business_criticality, owner_team, COALESCE(environment,''), COALESCE(validation_mode,''),
+       posture_status, posture_score, COALESCE(last_validated_at::text,''), validation_coverage_pct
 FROM assets WHERE $1 = ANY(task_ids)`
 	args := []any{taskID}
 	if typ != "" {
@@ -1385,7 +1400,9 @@ const assetSelectCols = `SELECT id, type, company_id, array_to_json(task_ids)::t
        COALESCE(url,''), COALESCE(service_type,''), COALESCE(service_name,''),
        COALESCE(favicon_mmh3,''), status_code, content_length,
        COALESCE(page_title,''), array_to_json(technologies)::text, array_to_json(auth)::text,
-       COALESCE(method,''), array_to_json(params)::text, extra, last_seen::text
+       COALESCE(method,''), array_to_json(params)::text, extra, last_seen::text,
+       business_criticality, owner_team, COALESCE(environment,''), COALESCE(validation_mode,''),
+       posture_status, posture_score, COALESCE(last_validated_at::text,''), validation_coverage_pct
 FROM assets`
 
 // GetByIDs returns assets with the given ids (order preserved by id array order).
@@ -1509,6 +1526,8 @@ func scanAssets(rows *sql.Rows) ([]*Asset, error) {
 			&a.FaviconMMH3, &statusCode, &contentLength,
 			&a.PageTitle, &techsRaw, &authRaw,
 			&a.Method, &paramsRaw, &extraRaw, &a.LastSeen,
+			&a.BusinessCriticality, &a.OwnerTeam, &a.Environment, &a.ValidationMode,
+			&a.PostureStatus, &a.PostureScore, &a.LastValidatedAt, &a.ValidationCoveragePct,
 		); err != nil {
 			return nil, err
 		}

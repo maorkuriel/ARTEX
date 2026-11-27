@@ -176,6 +176,35 @@ export const STEPS: Step[] = [
     },
   },
 
+  {
+    id: "uc1-posture",
+    useCase: 1,
+    headline: "Every asset carries business context and live posture",
+    path: `/function/assets/?type=endpoint&inspect=${DEMO_ENDPOINT_ASSET_ID}`,
+    anchor: "asset-posture",
+    executive: {
+      painPoint:
+        "An inventory that treats the billing API and a forgotten test page the same tells you nothing about business risk.",
+      lookingAt:
+        "The Asset posture panel for the invoices API: Tier 1 · Crown jewel, owned by Platform Billing, in production, with its posture status, a 0–100 score and how much of it was actually validated.",
+      howArtex:
+        "ARTEX rolls findings, coverage anchors and retests up the asset hierarchy into one posture per asset, weighted by how critical the asset is. Untested assets are flagged as blind spots, never as clean.",
+      tryThis:
+        "Click Edit context, change the criticality or owner team, then Save & recalculate: the score updates immediately.",
+      valueShipped: "Risk is ranked by what matters to the business, with a named owner for every crown jewel.",
+    },
+    analyst: {
+      painPoint: "Posture spreadsheets drift from the scanner data, so nobody trusts the “clean” column.",
+      lookingAt:
+        "posture_status, posture_score, validation_coverage_pct and last_validated_at, computed by RollupHierarchyPosture from exploration_anchors, open verified findings and active retests, plus the effective validation policy (read-only, derived from production + Tier-1).",
+      howArtex:
+        "Status is deterministic: an open critical → critical_exposure; open high/medium → high_exposure; active retest → pending_retest; every asset in the subtree anchored and nothing open → validated_clean; otherwise unvalidated_blind_spot.",
+      tryThis:
+        "PATCH the context in the panel (it calls PATCH /api/assets/:id/metadata) and compare the blast radius and recommended next steps.",
+      valueShipped: "An explainable, reproducible posture model backed by GET /api/assets/:id/posture.",
+    },
+  },
+
   // ═══════════════ Use Case 2 — Finding Real Attack Paths ═══════════════
   {
     id: "uc2-attack-paths",
@@ -325,6 +354,32 @@ export const STEPS: Step[] = [
     },
   },
 
+  {
+    id: "uc5-guard-audit",
+    useCase: 5,
+    headline: "Three layers, one immutable audit trail",
+    path: "/system/intercept/audit",
+    anchor: "guard-audit",
+    executive: {
+      painPoint: "Auditors ask “who let the robot touch production?” and nobody can answer with evidence.",
+      lookingAt:
+        "The Guard Audit Trail: every guardrail decision with time, actor, target asset, policy rule, decision (allowed, blocked, held, approved, denied) and the reason.",
+      howArtex:
+        "Three layers run before every worker action: read-only policy for production and crown jewels, blast-radius budgets, and human approval for Tier-1 targets and active validation. Each decision is written once and cannot be edited.",
+      tryThis: "Filter Decision = Blocked to see the POST that read-only validation stopped on the Tier-1 billing API.",
+      valueShipped: "A defensible, enterprise-ready record that autonomous testing stayed inside the rules.",
+    },
+    analyst: {
+      painPoint: "Guard warnings scroll past in worker logs and are gone when the task is archived.",
+      lookingAt:
+        "guard_audit_events rows (GET /api/guards/audit): Layer 1 read_only_validation blocks, a Layer 2 host_request_budget block, Layer 3 tier_1_crown_jewel_approval held → approved/denied, an llm_safety_judge escalation and a controlled_active_validation_approval.",
+      howArtex:
+        "guard.applyIntercept calls the posture policy first on every worker tool call; mutating requests (POST/PUT/PATCH/DELETE, bodies, uploads, exploitation tools) against read-only assets are blocked before dispatch, and an UPDATE trigger keeps the trail append-only.",
+      tryThis: "Filter Layer = 3 and follow the held → approved pair for admin-staging.acme.demo.local.",
+      valueShipped: "Non-bypassable guardrails with a structured, queryable audit trail per asset and task.",
+    },
+  },
+
   // ═══════════════ Use Case 6 — Proving Fixes Fast (mitigate → remediate → verify) ═══════════════
   {
     id: "uc6-remediate",
@@ -385,26 +440,27 @@ export const STEPS: Step[] = [
     id: "uc6-focus",
     useCase: 6,
     pillar: "posture",
-    headline: "Back to the Focus Queue",
+    headline: "Back to Posture & Focus",
     path: "/focus",
     anchor: "focus-queue",
     executive: {
       painPoint: "Dashboards show totals, but not what to do on Monday morning.",
       lookingAt:
-        "The Focus Queue: overall posture grade across the five pillars, and a ranked list of next actions — exposures to mitigate, fixes to verify, blind spots to test and approvals to give.",
+        "The Posture & Focus workspace: Overall Posture Score, Tier-1 critical exposures, validated coverage, untested blind spots and pending guard approvals, then “Where to focus now” in four ranked groups.",
       howArtex:
-        "ARTEX ranks work by real risk: proven critical exposure first, then pending approvals, unverified fixes and untested assets. A low-coverage estate never gets an “A” it hasn't earned.",
-      tryThis: "Click the top item's action button — it opens the exact finding, approval or coverage map to act on.",
+        "Proven exposures come first (with mitigation and evidence), then crown-jewel and business-critical blind spots, held approvals and fixes awaiting verification. A low-coverage estate never gets a grade it hasn't earned.",
+      tryThis:
+        "Click Schedule safe validation on a Tier-1 blind spot — it opens a prefilled, read-only validation task for you to confirm.",
       valueShipped: "One prioritized to-do list that closes the loop from discovery to verified fix.",
     },
     analyst: {
       painPoint:
         "Switching between inventory, coverage, findings and approval screens to decide what's next wastes hours.",
       lookingAt:
-        "Each queue item is tagged with its pillar (Risk Exposure, Coverage Status, Scope & Guardrails) and links straight into the remediation panel, retest or coverage map.",
+        "GET /api/posture/summary drives the KPI strip; each queue row links straight to the remediation panel, the HTTP evidence, the approval queue or a one-click Launch targeted retest.",
       howArtex:
-        "The posture score shows its factors (open criticals/highs, % untested) so the grade is explainable, not a black box.",
-      tryThis: "Hover the posture tile's factors, then open a Coverage Status item to test the remaining gray assets.",
+        "The overall score is the criticality-weighted mean of per-asset posture scores (Tier-1 ×3, Tier-2 ×2, Tier-3 ×1); blind spots are Tier-1/Tier-2 assets with zero exploration anchors.",
+      tryThis: "Use Launch targeted retest on a fix awaiting verification, then watch it move to pending_retest.",
       valueShipped: "A transparent, explainable focus list that drives the next validation run.",
     },
   },

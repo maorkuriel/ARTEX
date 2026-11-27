@@ -7,28 +7,33 @@ import Link from "next/link";
 import {
   ArrowRight,
   Bug,
+  CalendarPlus,
   CheckCircle2,
   ClipboardCheck,
   Crosshair,
-  Network,
+  FileSearch,
+  Gauge,
+  Loader2,
   Radar,
   RefreshCw,
   ShieldAlert,
-  ShieldCheck,
+  Target,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import { WalkthroughButton } from "@/components/docs/doc-blocks";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CRITICALITY_META, CriticalityBadge, POSTURE_META, PostureStatusBadge } from "@/components/vmdr/posture-badges";
 import { t } from "@/i18n";
+import { api } from "@/lib/api";
 import { statusMeta } from "@/lib/status";
-import type { Severity } from "@/lib/types";
+import type { BusinessCriticality, PostureAssetRef, PostureStatus, PostureSummary, Severity } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { pillarById, VMDR_FLOW, type VmdrPillarId } from "@/lib/vmdr/pillars";
-import { type PostureData, postureScore, usePostureData } from "@/lib/vmdr/posture";
+import { VMDR_FLOW } from "@/lib/vmdr/pillars";
+import { usePostureData } from "@/lib/vmdr/posture";
 import { remediationFor } from "@/lib/vmdr/remediation";
 import { useActiveCompany } from "@/stores/company/company-store";
 
@@ -39,213 +44,161 @@ const SEV_STYLE: Record<Severity, string> = {
   low: "bg-sky-500 text-white",
 };
 
-const GRADE_STYLE: Record<string, string> = {
-  A: "text-emerald-600 dark:text-emerald-400",
-  B: "text-lime-600 dark:text-lime-400",
-  C: "text-amber-600 dark:text-amber-400",
-  D: "text-orange-600 dark:text-orange-400",
-  F: "text-red-600 dark:text-red-400",
-};
-
-const ASSET_ORDER = ["root_domain", "subdomain", "ip", "service", "app", "endpoint"];
-const ASSET_LABEL: Record<string, string> = {
-  root_domain: "Root domains",
-  subdomain: "Subdomains",
-  ip: "IPs",
-  service: "Services",
-  app: "Apps",
-  endpoint: "Endpoints",
-};
-
-type FocusKind = "exposure" | "approval" | "verify" | "coverage";
-
-interface FocusItem {
-  key: string;
-  priority: number;
-  kind: FocusKind;
-  pillar: VmdrPillarId;
-  severity?: Severity;
-  title: string;
-  detail: string;
-  href: string;
-  action: string;
+function gradeOf(score: number) {
+  if (score >= 85) return { g: "A", c: "text-emerald-600 dark:text-emerald-400" };
+  if (score >= 70) return { g: "B", c: "text-lime-600 dark:text-lime-400" };
+  if (score >= 55) return { g: "C", c: "text-amber-600 dark:text-amber-400" };
+  if (score >= 40) return { g: "D", c: "text-orange-600 dark:text-orange-400" };
+  return { g: "F", c: "text-red-600 dark:text-red-400" };
 }
 
-const KIND_META: Record<FocusKind, { label: string; icon: typeof Bug }> = {
-  exposure: { label: "Mitigate & remediate", icon: Bug },
-  approval: { label: "Approve", icon: ClipboardCheck },
-  verify: { label: "Verify fix", icon: RefreshCw },
-  coverage: { label: "Close blind spot", icon: Radar },
+const TIER_SHORT: Record<BusinessCriticality, string> = {
+  tier_1_crown_jewel: "Tier-1 crown jewel",
+  tier_2_business: "Tier-2 business",
+  tier_3_standard: "Tier-3 standard",
 };
 
-const SEV_PRIORITY: Record<Severity, number> = { critical: 100, high: 80, medium: 50, low: 25 };
-
-function buildQueue(d: PostureData): FocusItem[] {
-  const items: FocusItem[] = [];
-  for (const f of d.open) {
-    const asset = f.assets?.[0]?.label;
-    const guide = remediationFor(f.vulnclass, f.name);
-    const unverified = f.status === "pending";
-    items.push({
-      key: `f-${f.id}`,
-      priority: SEV_PRIORITY[f.severity] - (unverified ? 15 : 0),
-      kind: "exposure",
-      pillar: "exposure",
-      severity: f.severity,
-      title: f.name || f.vulnclass,
-      detail: `${asset ? `${asset} · ` : ""}${unverified ? "Not yet proven — validate first. " : ""}Mitigate now: ${guide.mitigate[0]}`,
-      href: `/function/findings/detail?id=${f.finding_id ?? f.id}#remediation`,
-      action: unverified ? "Validate" : "Mitigate & remediate",
-    });
-  }
-  if (d.pending.length) {
-    items.push({
-      key: "approvals",
-      priority: 90,
-      kind: "approval",
-      pillar: "guardrails",
-      title: `${d.pending.length} risky ${d.pending.length === 1 ? "action is" : "actions are"} waiting for approval`,
-      detail: `Testing is paused on these steps until a human allows or denies them (e.g. ${d.pending[0].tool_name}).`,
-      href: "/system/intercept/approvals",
-      action: "Review approvals",
-    });
-  }
-  for (const { finding: f, latest } of d.awaitingVerify) {
-    items.push({
-      key: `v-${f.id}`,
-      priority: 70,
-      kind: "verify",
-      pillar: "exposure",
-      severity: f.severity,
-      title: `Verify the fix: ${f.name || f.vulnclass}`,
-      detail:
-        latest?.verdict === "reproduced"
-          ? "The last retest still reproduced the issue — the fix is not working yet."
-          : "Marked fixed, but no retest has confirmed it. Launch a retest to prove closure.",
-      href: `/function/findings/detail?id=${f.finding_id ?? f.id}#retest`,
-      action: "Launch retest",
-    });
-  }
-  for (const { task, coverage: c } of d.coverage) {
-    if (!c?.enabled || !c.denominator) continue;
-    const untested = c.denominator - c.tested;
-    const pct = c.pct ?? c.tested / c.denominator;
-    if (untested <= 0 || pct >= 0.9) continue;
-    items.push({
-      key: `c-${task.id}`,
-      priority: 55 + Math.round((1 - pct) * 20),
-      kind: "coverage",
-      pillar: "coverage",
-      title: `${untested} untested ${untested === 1 ? "asset" : "assets"} in ${task.name || task.description || `task ${task.id}`}`,
-      detail: `Only ${Math.round(pct * 100)}% of in-scope assets have been tested. Untested is a blind spot, not a clean result.`,
-      href: `/function/tasks/detail?id=${task.id}&tab=coverage`,
-      action: "Open coverage map",
-    });
-  }
-  return items.sort((a, b) => b.priority - a.priority);
+/** "Schedule safe validation": opens the new-task sheet prefilled with a read-only validation brief. */
+function safeValidationHref(a: PostureAssetRef) {
+  const p = new URLSearchParams({
+    new: "1",
+    name: `Safe validation: ${a.label}`,
+    description: `Read-only safe validation of ${a.label} (${a.type}, ${TIER_SHORT[a.business_criticality]}, owner ${a.owner_team}). Use non-mutating probes only (GET/HEAD/OPTIONS, passive fingerprinting). The asset's validation policy blocks state-changing requests and Tier-1 targets require human approval.`,
+    goal: `Determine whether ${a.label} exposes exploitable weaknesses using non-destructive checks, record coverage anchors for every asset exercised, and attach HTTP evidence to anything confirmed.`,
+  });
+  return `/function/tasks?${p.toString()}`;
 }
 
-function PillarTile({
-  id,
+function Kpi({
   icon: Icon,
+  label,
   value,
   sub,
+  tone,
+  href,
+  tour,
   children,
 }: {
-  id: VmdrPillarId;
   icon: typeof Bug;
+  label: string;
   value: React.ReactNode;
   sub: React.ReactNode;
+  tone?: string;
+  href: string;
+  tour?: string;
   children?: React.ReactNode;
 }) {
-  const p = pillarById(id);
   return (
     <Link
       prefetch={false}
-      href={p.href}
-      data-tour={`focus-tile-${id}`}
-      className="group flex flex-col gap-2 rounded-xl border bg-card p-4 shadow-xs transition-colors hover:border-primary/40"
+      href={href}
+      data-tour={tour}
+      className="group flex flex-col gap-1.5 rounded-xl border bg-card p-4 shadow-xs transition-colors hover:border-primary/40"
     >
-      <div className="flex items-center justify-between gap-2">
-        <span className="flex items-center gap-2 font-medium text-muted-foreground text-sm">
-          <Icon className="size-4 text-primary" />
-          {t(p.title)}
-        </span>
-        <ArrowRight className="size-4 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5" />
-      </div>
-      <div className="font-semibold text-2xl tabular-nums tracking-tight">{value}</div>
-      <div className="text-muted-foreground text-xs leading-snug">{sub}</div>
+      <span className="flex items-center gap-2 font-medium text-muted-foreground text-sm">
+        <Icon className="size-4 text-primary" />
+        {label}
+      </span>
+      <span className={cn("font-semibold text-3xl tabular-nums tracking-tight", tone)}>{value}</span>
+      <span className="text-muted-foreground text-xs leading-snug">{sub}</span>
       {children}
     </Link>
   );
 }
 
-function QueueBody({ loading, queue }: { loading: boolean; queue: FocusItem[] }) {
-  if (loading)
-    return (
-      <div className="flex flex-col gap-2 px-6 pb-6">
-        {Array.from({ length: 5 }, (_, i) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey: static placeholders
-          <Skeleton key={i} className="h-14" />
-        ))}
-      </div>
-    );
-  if (queue.length === 0)
-    return (
-      <div className="flex flex-col items-center gap-2 px-6 pb-8 text-center text-muted-foreground text-sm">
-        <CheckCircle2 className="size-8 text-emerald-500" />
-        {t("Nothing needs your attention right now.")}
-      </div>
-    );
+function Section({
+  n,
+  icon: Icon,
+  title,
+  hint,
+  count,
+  children,
+  tour,
+}: {
+  n: number;
+  icon: typeof Bug;
+  title: string;
+  hint: string;
+  count: number;
+  children: React.ReactNode;
+  tour?: string;
+}) {
   return (
-    <ol className="divide-y border-t">
-      {queue.map((item, i) => {
-        const Meta = KIND_META[item.kind];
-        return (
-          <li key={item.key} className="flex items-start gap-3 px-4 py-3 md:px-6">
-            <span className="mt-0.5 w-5 shrink-0 text-right font-medium text-muted-foreground text-sm tabular-nums">
-              {i + 1}
-            </span>
-            <Meta.icon className="mt-0.5 size-4 shrink-0 text-primary" />
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                {item.severity && (
-                  <span
-                    className={cn(
-                      "rounded px-1.5 py-0.5 font-semibold text-[11px] uppercase",
-                      SEV_STYLE[item.severity],
-                    )}
-                  >
-                    {statusMeta("severity", item.severity).label}
-                  </span>
-                )}
-                <span className="font-medium text-sm">{item.title}</span>
-                <Badge variant="secondary" className="text-[11px]">
-                  {t(pillarById(item.pillar).title)}
-                </Badge>
-              </div>
-              <p className="mt-0.5 text-muted-foreground text-sm leading-snug">{item.detail}</p>
-            </div>
-            <Button asChild size="sm" variant={i === 0 ? "default" : "outline"} className="shrink-0 gap-1">
-              <Link prefetch={false} href={item.href}>
-                {t(item.action)}
-                <ArrowRight className="size-3.5" />
-              </Link>
-            </Button>
-          </li>
-        );
-      })}
-    </ol>
+    <section data-tour={tour} className="border-t first:border-t-0">
+      <header className="flex items-center gap-2 bg-muted/30 px-4 py-2.5 md:px-6">
+        <span className="flex size-5 items-center justify-center rounded-full bg-primary font-semibold text-[11px] text-primary-foreground">
+          {n}
+        </span>
+        <Icon className="size-4 text-primary" />
+        <h3 className="font-semibold text-sm">{title}</h3>
+        <span className="rounded-full bg-background px-2 py-0.5 text-muted-foreground text-xs tabular-nums">
+          {count}
+        </span>
+        <span className="ml-auto hidden text-muted-foreground text-xs lg:inline">{hint}</span>
+      </header>
+      {count === 0 ? (
+        <p className="flex items-center gap-2 px-4 py-3 text-muted-foreground text-sm md:px-6">
+          <CheckCircle2 className="size-4 text-emerald-500" />
+          {t("Nothing here right now.")}
+        </p>
+      ) : (
+        <ol className="divide-y">{children}</ol>
+      )}
+    </section>
+  );
+}
+
+function Row({ children, actions }: { children: React.ReactNode; actions: React.ReactNode }) {
+  return (
+    <li className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-start md:px-6">
+      <div className="min-w-0 flex-1">{children}</div>
+      <div className="flex shrink-0 flex-wrap gap-2">{actions}</div>
+    </li>
   );
 }
 
 export default function FocusPage() {
   const company = useActiveCompany();
   const d = usePostureData(company);
-  const queue = React.useMemo(() => buildQueue(d), [d]);
-  const posture = postureScore(d.open, d.tested, d.denominator);
-  const covPct = d.denominator ? Math.round((d.tested / d.denominator) * 100) : null;
-  const sevCount = (s: Severity) => d.open.filter((f) => f.severity === s).length;
+  const [summary, setSummary] = React.useState<PostureSummary | null>(null);
+  const [retesting, setRetesting] = React.useState<Record<string, boolean>>({});
+  const [tick, setTick] = React.useState(0);
+
+  React.useEffect(() => {
+    let live = true;
+    api
+      .postureSummary(company, tick > 0)
+      .then((s) => live && setSummary(s))
+      .catch(() => live && setSummary(null));
+    return () => {
+      live = false;
+    };
+  }, [company, tick]);
+
+  const reload = () => {
+    setTick((n) => n + 1);
+    d.reload();
+  };
+
+  async function launchRetest(findingId: string) {
+    setRetesting((r) => ({ ...r, [findingId]: true }));
+    try {
+      await api.startFindingRetest(findingId, "Targeted retest launched from the Focus Queue to verify the fix.");
+      toast.success(t("Targeted retest launched"));
+      reload();
+    } catch (e) {
+      toast.error(t("Update failed: {error}", { error: (e as Error).message }));
+    } finally {
+      setRetesting((r) => ({ ...r, [findingId]: false }));
+    }
+  }
+
+  const proven = d.open.filter((f) => f.status === "confirmed" || f.status === "in_progress");
+  const blind = summary?.high_value_blind_spots ?? [];
+  const loading = d.loading || !summary;
+  const score = summary?.overall_score ?? 0;
+  const grade = gradeOf(score);
+  const tier1Exposed = (summary?.tier1.critical_exposures ?? 0) + (summary?.tier1.high_exposures ?? 0);
 
   return (
     <div className="flex flex-col gap-5" data-tour="focus-root">
@@ -253,16 +206,16 @@ export default function FocusPage() {
         <div>
           <h1 className="flex items-center gap-2 font-semibold text-2xl tracking-tight">
             <Crosshair className="size-6 text-primary" />
-            {t("Focus Queue")}
+            {t("Posture & Focus")}
           </h1>
           <p className="mt-1 max-w-3xl text-muted-foreground text-sm">
             {t(
-              "Your overall asset security posture and the next actions that reduce real risk, ranked: open exposures to mitigate and remediate, fixes to verify, blind spots to test and approvals to give.",
+              "Asset-centric security posture and where to focus now: proven exposures to mitigate and remediate, high-value blind spots to validate safely, guard approvals to give and fixes to verify.",
             )}
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <Button variant="outline" size="sm" className="gap-1.5" onClick={d.reload}>
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={reload}>
             <RefreshCw className="size-3.5" />
             {t("Refresh")}
           </Button>
@@ -270,123 +223,299 @@ export default function FocusPage() {
         </div>
       </div>
 
-      {/* Posture across the five pillars */}
-      <section aria-label={t("Security posture")} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
-        {d.loading ? (
+      {/* KPI strip */}
+      <section
+        aria-label={t("Security posture")}
+        data-tour="focus-kpis"
+        className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"
+      >
+        {loading ? (
           Array.from({ length: 5 }, (_, i) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: static placeholders
-            <Skeleton key={i} className="h-36 rounded-xl" />
+            <Skeleton key={i} className="h-32 rounded-xl" />
           ))
         ) : (
           <>
-            <div
-              data-tour="focus-posture"
-              className="flex flex-col gap-2 rounded-xl border border-primary/30 bg-primary/5 p-4 shadow-xs sm:col-span-2 lg:col-span-1 lg:row-span-2 2xl:row-span-1"
-            >
-              <span className="flex items-center gap-2 font-medium text-muted-foreground text-sm">
-                <ShieldCheck className="size-4 text-primary" />
-                {t("Overall Asset Security Posture")}
-              </span>
-              <div className="flex items-baseline gap-2">
-                <span className={cn("font-bold text-4xl", GRADE_STYLE[posture.grade])}>{posture.grade}</span>
-                <span className="text-muted-foreground text-sm tabular-nums">{posture.score}/100</span>
-                <Badge variant="outline" className="ml-auto text-xs">
-                  {t("{level} confidence", { level: statusMeta("severity", posture.confidence).label })}
-                </Badge>
-              </div>
-              <ul className="flex flex-wrap gap-x-3 gap-y-0.5 text-muted-foreground text-xs">
-                {posture.factors.length ? (
-                  posture.factors.map((f) => (
-                    <li key={f.label} className="tabular-nums">
-                      {f.label} <span className="text-red-600 dark:text-red-400">{f.delta}</span>
-                    </li>
-                  ))
-                ) : (
-                  <li>{t("No open exposure and full coverage.")}</li>
-                )}
-              </ul>
-              {posture.confidence === "low" && (
-                <p className="text-amber-700 text-xs dark:text-amber-400">
-                  {t("Most in-scope assets are untested, so this grade could hide blind spots.")}
-                </p>
-              )}
-            </div>
-            <PillarTile
-              id="assets"
-              icon={Network}
-              value={d.assetTotal.toLocaleString()}
-              sub={ASSET_ORDER.filter((k) => d.assetCounts[k])
-                .map((k) => `${d.assetCounts[k]} ${t(ASSET_LABEL[k])}`)
-                .join(" · ")}
-            />
-            <PillarTile
-              id="coverage"
-              icon={Radar}
-              value={covPct === null ? "—" : `${covPct}%`}
-              sub={
-                d.denominator
-                  ? t("{tested} of {total} in-scope assets tested", {
-                      tested: String(d.tested),
-                      total: String(d.denominator),
-                    })
-                  : t("No coverage data yet")
+            <Kpi
+              icon={Gauge}
+              label={t("Overall Posture Score")}
+              tour="focus-posture"
+              href="/function/assets"
+              value={
+                <span className="flex items-baseline gap-2">
+                  <span className={grade.c}>{score}</span>
+                  <span className="text-base text-muted-foreground">/100</span>
+                  <span className={cn("ml-auto font-bold text-2xl", grade.c)}>{grade.g}</span>
+                </span>
               }
-            >
-              {covPct !== null && <Progress value={covPct} className="h-1.5" />}
-            </PillarTile>
-            <PillarTile
-              id="exposure"
-              icon={Bug}
-              value={d.open.length}
-              sub={t("open findings · fixes awaiting verification: {verify}", {
-                verify: String(d.awaitingVerify.length),
-              })}
-            >
-              <div className="flex flex-wrap gap-1">
-                {(["critical", "high", "medium", "low"] as Severity[]).map((s) => (
-                  <span
-                    key={s}
-                    className={cn(
-                      "rounded px-1.5 py-0.5 font-medium text-[11px] tabular-nums",
-                      SEV_STYLE[s],
-                      sevCount(s) === 0 && "opacity-35",
-                    )}
-                    title={statusMeta("severity", s).label}
-                  >
-                    {sevCount(s)} {statusMeta("severity", s).label}
-                  </span>
-                ))}
-              </div>
-            </PillarTile>
-            <PillarTile
-              id="guardrails"
+              sub={
+                (summary?.coverage_pct ?? 0) < 50
+                  ? t("Low confidence: most assets are still untested")
+                  : t("Criticality-weighted across {n} assets", { n: String(summary?.asset_total ?? 0) })
+              }
+            />
+            <Kpi
               icon={ShieldAlert}
-              value={d.pending.length}
-              sub={t("pending approvals · {rules} active rules · {block} blocklist entries", {
-                rules: String(d.guardrailRules),
-                block: String(d.blocklistRules),
+              label={t("Tier-1 Exposures")}
+              href="/function/findings"
+              tone={tier1Exposed ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400"}
+              value={tier1Exposed}
+              sub={t("{c} critical · {h} high · of {n} crown jewels", {
+                c: String(summary?.tier1.critical_exposures ?? 0),
+                h: String(summary?.tier1.high_exposures ?? 0),
+                n: String(summary?.tier1.total ?? 0),
               })}
+            />
+            <Kpi
+              icon={Radar}
+              label={t("Validated Coverage")}
+              href="/coverage"
+              value={`${Math.round(summary?.coverage_pct ?? 0)}%`}
+              sub={t("{v} of {n} assets have exploration anchors", {
+                v: String(summary?.validated_assets ?? 0),
+                n: String(summary?.asset_total ?? 0),
+              })}
+            >
+              <Progress value={summary?.coverage_pct ?? 0} className="h-1.5" />
+            </Kpi>
+            <Kpi
+              icon={Target}
+              label={t("Untested Blind Spots")}
+              href="/coverage"
+              tone="text-slate-700 dark:text-slate-300"
+              value={summary?.blind_spots ?? 0}
+              sub={t("{n} are Tier-1/Tier-2", { n: String(blind.length) })}
+            />
+            <Kpi
+              icon={ClipboardCheck}
+              label={t("Pending Guard Approvals")}
+              href="/system/intercept/approvals"
+              tone={summary?.pending_approvals ? "text-amber-600 dark:text-amber-400" : undefined}
+              value={summary?.pending_approvals ?? 0}
+              sub={t("Fixes awaiting verification: {n}", { n: String(summary?.fixes_awaiting_verification ?? 0) })}
             />
           </>
         )}
       </section>
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px] min-[2200px]:grid-cols-[minmax(0,1fr)_440px]">
-        {/* Ranked focus queue */}
-        <Card data-tour="focus-queue" className="min-w-0">
-          <CardHeader className="flex-row items-center justify-between gap-2">
-            <CardTitle className="text-base">{t("What to do next")}</CardTitle>
-            <span className="text-muted-foreground text-xs">
-              {t("{n} actions, highest risk first", { n: String(queue.length) })}
-            </span>
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px] min-[2200px]:grid-cols-[minmax(0,1fr)_420px]">
+        <Card data-tour="focus-queue" className="min-w-0 gap-0 overflow-hidden py-0">
+          <CardHeader className="flex-row items-center justify-between gap-2 border-b py-4">
+            <CardTitle className="text-base">{t("Where to focus now")}</CardTitle>
+            <span className="text-muted-foreground text-xs">{t("Highest risk first")}</span>
           </CardHeader>
           <CardContent className="p-0">
-            <QueueBody loading={d.loading} queue={queue} />
+            {loading ? (
+              <div className="flex flex-col gap-2 p-6">
+                {Array.from({ length: 6 }, (_, i) => (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: static placeholders
+                  <Skeleton key={i} className="h-12" />
+                ))}
+              </div>
+            ) : (
+              <>
+                <Section
+                  n={1}
+                  icon={Bug}
+                  tour="focus-exposures"
+                  title={t("Proven exposures needing remediation / mitigation")}
+                  hint={t("Confirmed findings, with their evidence")}
+                  count={proven.length}
+                >
+                  {proven.map((f, i) => {
+                    const id = f.finding_id ?? f.id;
+                    const guide = remediationFor(f.vulnclass, f.name);
+                    return (
+                      <Row
+                        key={f.id}
+                        actions={
+                          <>
+                            <Button asChild size="sm" variant={i === 0 ? "default" : "outline"} className="gap-1">
+                              <Link prefetch={false} href={`/function/findings/detail?id=${id}#remediation`}>
+                                {t("Mitigate & remediate")}
+                                <ArrowRight className="size-3.5" />
+                              </Link>
+                            </Button>
+                            <Button asChild size="sm" variant="ghost" className="gap-1">
+                              <Link prefetch={false} href={`/function/findings/detail?id=${id}#evidence`}>
+                                <FileSearch className="size-3.5" />
+                                {t("Evidence ({n})", { n: String(f.traffic_count ?? 0) })}
+                              </Link>
+                            </Button>
+                          </>
+                        }
+                      >
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span
+                            className={cn(
+                              "rounded px-1.5 py-0.5 font-semibold text-[11px] uppercase",
+                              SEV_STYLE[f.severity],
+                            )}
+                          >
+                            {statusMeta("severity", f.severity).label}
+                          </span>
+                          <span className="font-medium text-sm">{f.name || f.vulnclass}</span>
+                        </div>
+                        <p className="mt-0.5 text-muted-foreground text-sm leading-snug">
+                          {f.assets?.[0]?.label ? `${f.assets[0].label} · ` : ""}
+                          {t("Mitigate now:")} {guide.mitigate[0]}
+                        </p>
+                      </Row>
+                    );
+                  })}
+                </Section>
+
+                <Section
+                  n={2}
+                  icon={Target}
+                  tour="focus-blind-spots"
+                  title={t("High-criticality blind spots")}
+                  hint={t("Tier-1/Tier-2 assets with zero exploration anchors")}
+                  count={blind.length}
+                >
+                  {blind.map((a) => (
+                    <Row
+                      key={a.id}
+                      actions={
+                        <Button asChild size="sm" variant="outline" className="gap-1">
+                          <Link prefetch={false} href={safeValidationHref(a)}>
+                            <CalendarPlus className="size-3.5" />
+                            {t("Schedule safe validation")}
+                          </Link>
+                        </Button>
+                      }
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <CriticalityBadge tier={a.business_criticality} />
+                        <Link
+                          prefetch={false}
+                          href={`/function/assets/?type=${a.type}&inspect=${a.id}`}
+                          className="truncate font-medium font-mono text-sm hover:underline"
+                        >
+                          {a.label}
+                        </Link>
+                      </div>
+                      <p className="mt-0.5 text-muted-foreground text-sm">
+                        {a.type} · {t("owner {team}", { team: a.owner_team })} ·{" "}
+                        {t("never validated — unknown, not clean")}
+                      </p>
+                    </Row>
+                  ))}
+                </Section>
+
+                <Section
+                  n={3}
+                  icon={ClipboardCheck}
+                  tour="focus-approvals"
+                  title={t("Held guard approvals")}
+                  hint={t("Waiting for human sign-off")}
+                  count={d.pending.length}
+                >
+                  {d.pending.slice(0, 6).map((p) => (
+                    <Row
+                      key={p.id}
+                      actions={
+                        <Button asChild size="sm" variant="outline" className="gap-1">
+                          <Link prefetch={false} href="/system/intercept/approvals">
+                            {t("Review")}
+                            <ArrowRight className="size-3.5" />
+                          </Link>
+                        </Button>
+                      }
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">{p.tool_name}</span>
+                        {p.task_id && <span className="text-muted-foreground text-xs">#{p.task_id}</span>}
+                      </div>
+                      <p className="mt-0.5 line-clamp-2 text-muted-foreground text-sm leading-snug">
+                        {p.reason || t("Approval required")}
+                      </p>
+                    </Row>
+                  ))}
+                </Section>
+
+                <Section
+                  n={4}
+                  icon={RefreshCw}
+                  tour="focus-verify"
+                  title={t("Fixes awaiting verification")}
+                  hint={t("Marked fixed, not yet proven by a retest")}
+                  count={d.awaitingVerify.length}
+                >
+                  {d.awaitingVerify.map(({ finding: f, latest }) => {
+                    const id = String(f.finding_id ?? f.id);
+                    return (
+                      <Row
+                        key={f.id}
+                        actions={
+                          <>
+                            <Button
+                              size="sm"
+                              className="gap-1"
+                              disabled={retesting[id] || latest?.status === "running" || latest?.status === "pending"}
+                              onClick={() => launchRetest(id)}
+                            >
+                              {retesting[id] ? (
+                                <Loader2 className="size-3.5 animate-spin" />
+                              ) : (
+                                <RefreshCw className="size-3.5" />
+                              )}
+                              {t("Launch targeted retest")}
+                            </Button>
+                            <Button asChild size="sm" variant="ghost">
+                              <Link prefetch={false} href={`/function/findings/detail?id=${id}#retest`}>
+                                {t("Open")}
+                              </Link>
+                            </Button>
+                          </>
+                        }
+                      >
+                        <span className="font-medium text-sm">{f.name || f.vulnclass}</span>
+                        <p className="mt-0.5 text-muted-foreground text-sm leading-snug">
+                          {latest?.verdict === "reproduced"
+                            ? t("The last retest still reproduced the issue — the fix is not working yet.")
+                            : t("Marked fixed, but no retest has confirmed it yet.")}
+                        </p>
+                      </Row>
+                    );
+                  })}
+                </Section>
+              </>
+            )}
           </CardContent>
         </Card>
 
-        {/* The loop + how to read this page */}
-        <aside className="flex flex-col gap-4">
+        <aside className="grid content-start gap-4 md:grid-cols-2 xl:grid-cols-1">
+          <Card data-tour="focus-status-mix">
+            <CardHeader>
+              <CardTitle className="text-base">{t("Assets by posture status")}</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-2.5">
+              {(Object.keys(POSTURE_META) as PostureStatus[]).map((st) => {
+                const n = summary?.by_status[st] ?? 0;
+                const pct = summary?.asset_total ? (n / summary.asset_total) * 100 : 0;
+                return (
+                  <div key={st} className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between">
+                      <PostureStatusBadge status={st} />
+                      <span className="text-sm tabular-nums">{n}</span>
+                    </div>
+                    <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                      <div className={cn("h-full rounded-full", POSTURE_META[st].dot)} style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+              <div className="mt-1 flex flex-wrap gap-1.5 border-t pt-2 text-xs">
+                {(Object.keys(CRITICALITY_META) as BusinessCriticality[]).map((k) => (
+                  <span key={k} className="flex items-center gap-1">
+                    <CriticalityBadge tier={k} />
+                    <span className="tabular-nums">{summary?.by_criticality[k] ?? 0}</span>
+                  </span>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
           <Card data-tour="focus-loop">
             <CardHeader>
               <CardTitle className="text-base">{t("The VMDR loop")}</CardTitle>
@@ -407,30 +536,6 @@ export default function FocusPage() {
                   </li>
                 ))}
               </ol>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">{t("Mitigate vs. remediate")}</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-2 text-sm leading-snug">
-              <p>
-                <span className="font-medium">{t("Mitigate")}</span> —{" "}
-                {t(
-                  "a temporary control that lowers risk today (WAF rule, IP allow-list, rate limit, disable a feature).",
-                )}
-              </p>
-              <p>
-                <span className="font-medium">{t("Remediate")}</span> —{" "}
-                {t("the permanent fix of the root cause in code, configuration or access.")}
-              </p>
-              <p>
-                <span className="font-medium">{t("Verify")}</span> —{" "}
-                {t("a targeted retest replays the original proof to show the fix holds.")}
-              </p>
-              <Link prefetch={false} href="/docs#focus-loop" className="text-primary text-sm hover:underline">
-                {t("Read the guide")} →
-              </Link>
             </CardContent>
           </Card>
         </aside>

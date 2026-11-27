@@ -165,6 +165,7 @@ w("-- Only touches demo rows (id >= 9000 or 'demo-' prefix). Safe to re-run.")
 w("BEGIN;")
 w()
 w("-- ============ 0. Clean prior demo rows (FK-safe order) ============")
+w("DELETE FROM guard_audit_events WHERE id >= 9000;")
 w("DELETE FROM finding_traffic_bindings WHERE finding_id >= 9000;")
 w("DELETE FROM traffic_evidence_snapshots WHERE id LIKE 'demo-%';")
 w("DELETE FROM finding_retests WHERE id >= 9000;")
@@ -1317,6 +1318,23 @@ for n, a in ANCH:
     w(anchor(n, a))
 w()
 
+# acme.demo.local (Billing API test 9006, Partner Gateway audit 9007): read-only validation
+# facts that anchor the exercised assets, so the posture rollup has real coverage there.
+# Left untested on purpose: the root domain, portal.acme.demo.local and its export endpoint,
+# 198.51.100.22 and the mobile apps (high-value blind spots in the Focus queue).
+DEMO_LOCAL_FACTS = [
+    (9301, 9006, "GET /api/v2/invoices/1002 with tenant A's token returns tenant B's invoice (200 OK)", "2026-11-18T09:15:00Z", [9210, 9207, 9202]),
+    (9302, 9006, "GET /api/v2/invoices/{id} error path leaks a Java stack trace", "2026-11-18T09:20:00Z", [9210]),
+    (9303, 9006, "HEAD/OPTIONS on /api/v2/auth/token: TLS 1.2+, no verbose errors (POST blocked by read-only policy)", "2026-11-18T09:31:00Z", [9211, 9205]),
+    (9304, 9007, "admin-staging.acme.demo.local: PUT on tenant 42 settings accepted after approval; change rolled back", "2026-11-19T14:20:00Z", [9204]),
+]
+for nid, exp, summary, ts, assets in DEMO_LOCAL_FACTS:
+    payload = '{"summary":"' + summary.replace('"', '\\"') + '","confidence":"high","source":"worker","provenance":"read-only validation"}'
+    w(node(nid, exp, "fact", payload, 0, "confirmed", "worker", ts))
+    for a in assets:
+        w(anchor(nid, a))
+w()
+
 w(
     "-- ============ 9. Task constraints (allow = in-scope intent, deny = out-of-scope) ============"
 )
@@ -1895,6 +1913,85 @@ for a in ACTS:
     w(a)
 w()
 
+w("-- ============ 17b. Asset business context + validation policy (posture spine) ============")
+# (criticality, owner team, environment, explicit validation mode or None = derived)
+ASSET_CONTEXT = {
+    9001: ("tier_2_business", "Digital Platform", "production", None),
+    9002: ("tier_2_business", "Web Experience", "production", None),
+    9003: ("tier_1_crown_jewel", "Platform Billing", "production", None),
+    9004: ("tier_1_crown_jewel", "Commerce", "production", None),
+    9005: ("tier_1_crown_jewel", "Core Identity", "production", None),
+    9006: ("tier_2_business", "Infrastructure", "production", None),
+    9007: ("tier_2_business", "Infrastructure", "production", None),
+    9008: ("tier_2_business", "Infrastructure", "production", None),
+    9009: ("tier_2_business", "Web Experience", "production", None),
+    9010: ("tier_1_crown_jewel", "Platform Billing", "production", None),
+    9011: ("tier_1_crown_jewel", "Commerce", "production", None),
+    9012: ("tier_3_standard", "Web Experience", "production", None),
+    9013: ("tier_1_crown_jewel", "Platform Billing", "production", None),
+    9014: ("tier_3_standard", "Mobile", "development", None),
+    9015: ("tier_2_business", "Globex Retail", "production", None),
+    9016: ("tier_2_business", "Globex Retail", "production", None),
+    9017: ("tier_3_standard", "Infrastructure", "production", None),
+    9018: ("tier_2_business", "Globex Retail", "production", None),
+    9201: ("tier_2_business", "Cloud Platform", "production", None),
+    9202: ("tier_1_crown_jewel", "Platform Billing", "production", None),
+    9203: ("tier_2_business", "Customer Portal", "production", None),
+    9204: ("tier_2_business", "Core Identity", "staging", "controlled_active_validation"),
+    9205: ("tier_2_business", "Cloud Infrastructure", "production", None),
+    9206: ("tier_2_business", "Cloud Infrastructure", "production", None),
+    9207: ("tier_1_crown_jewel", "Platform Billing", "production", None),
+    9208: ("tier_2_business", "Customer Portal", "production", None),
+    9209: ("tier_3_standard", "Mobile", "development", None),
+    9210: ("tier_1_crown_jewel", "Platform Billing", "production", None),
+    9211: ("tier_1_crown_jewel", "Core Identity", "production", None),
+    9212: ("tier_2_business", "Customer Portal", "production", None),
+    9213: ("tier_3_standard", "Mobile", "development", None),
+}
+for aid, (crit, team, env, mode) in ASSET_CONTEXT.items():
+    m = f"'{mode}'" if mode else "NULL"
+    w(
+        f"UPDATE assets SET business_criticality='{crit}', owner_team='{q(team)}', environment='{env}', "
+        f"validation_mode={m}, posture_computed_at=NULL WHERE id={aid};"
+    )
+w()
+
+w("-- ============ 17c. Guard audit trail (three-layer guardrail decisions) ============")
+GUARD_EVENTS = [
+    # id, ts, actor, task, tool, target, asset, layer, rule, decision, rationale
+    (9001, "2026-11-14T01:12:00Z", "worker-2", "9001", "WebFetch", "api.acme.com", 9003, 1, "read_only_validation", "blocked",
+     "HTTP POST request blocked: api.acme.com is in read_only_validation (Tier-1 crown jewel); only GET/HEAD/OPTIONS and non-mutating probes are allowed"),
+    (9002, "2026-11-14T01:20:00Z", "worker-1", "9001", "WebFetch", "admin.acme.com", 9005, 3, "tier_1_crown_jewel_approval", "held_for_approval",
+     "admin.acme.com is a Tier-1 crown-jewel asset: a human must approve validation against it"),
+    (9003, "2026-11-14T01:23:00Z", "worker-1", "9001", "WebFetch", "admin.acme.com", 9005, 3, "tier_1_crown_jewel_approval", "approved",
+     "Approved by ARTEX (security lead): read-only login check in the agreed window"),
+    (9004, "2026-11-14T01:24:00Z", "worker-1", "9001", "WebFetch", "admin.acme.com", 9005, 1, "classified_target", "allowed",
+     "within the asset's validation policy"),
+    (9005, "2026-11-14T02:05:00Z", "worker-3", "9002", "Bash", "api.acme.com", None, 2, "host_request_budget", "blocked",
+     "request budget for api.acme.com exhausted (400 requests per task)"),
+    (9006, "2026-11-14T02:40:00Z", "worker-2", "9002", "Bash", "api.acme.com", 9003, 3, "llm_safety_judge", "held_for_approval",
+     "[model] sqlmap with --risk 3 can write to the database; human confirmation required"),
+    (9007, "2026-11-18T09:02:00Z", "worker-1", "9006", "Bash", "prod-db.acme.demo.local", None, 1, "rule:Deny out-of-scope prod database", "blocked",
+     "Out of scope: production database is off-limits"),
+    (9008, "2026-11-18T09:15:00Z", "worker-2", "9006", "WebFetch", "api.acme.demo.local", 9210, 1, "classified_target", "allowed",
+     "GET /api/v2/invoices/1002 within the asset's read-only validation policy"),
+    (9009, "2026-11-18T09:31:00Z", "worker-2", "9006", "WebFetch", "api.acme.demo.local", 9211, 1, "read_only_validation", "blocked",
+     "HTTP POST request blocked: api.acme.demo.local is in read_only_validation (Tier-1 crown jewel); only GET/HEAD/OPTIONS and non-mutating probes are allowed"),
+    (9010, "2026-11-19T14:10:00Z", "worker-1", "9007", "WebFetch", "admin-staging.acme.demo.local", 9204, 3, "controlled_active_validation_approval", "held_for_approval",
+     "HTTP PUT request against admin-staging.acme.demo.local crosses into controlled_active_validation: approve bounded state testing"),
+    (9011, "2026-11-19T14:16:00Z", "worker-1", "9007", "WebFetch", "admin-staging.acme.demo.local", 9204, 3, "controlled_active_validation_approval", "approved",
+     "Approved by ARTEX (security lead): staging only, test tenant 42"),
+    (9012, "2026-11-19T15:02:00Z", "worker-3", "9006", "WebFetch", "api.acme.demo.local", 9202, 3, "tier_1_crown_jewel_approval", "denied",
+     "Denied by ARTEX (security lead): billing freeze window, retry after 18:00 UTC"),
+]
+for (gid, ts, actor, task, tool, target, aid, layer, rule, decision, why) in GUARD_EVENTS:
+    a = str(aid) if aid else "NULL"
+    w(
+        "INSERT INTO guard_audit_events (id,ts,actor,task_id,tool_name,target,target_asset_id,layer,policy_rule,decision,rationale) VALUES "
+        f"({gid},'{ts}','{actor}','{task}','{tool}','{q(target)}',{a},{layer},'{q(rule)}','{decision}','{q(why)}');"
+    )
+w()
+
 w("-- ============ 18. Keep sequences ahead of the explicit demo ids ============")
 for tbl in [
     "companies",
@@ -1910,6 +2007,7 @@ for tbl in [
     "finding_retests",
     "conversations",
     "company_scope",
+    "guard_audit_events",
     "task_scope",
     "coverage_ledger",
     "task_constraints",

@@ -157,6 +157,42 @@ export const ARTICLES: DocArticle[] = [
     ],
   },
   {
+    id: "posture-model",
+    pillar: "overview",
+    title: "How asset posture is calculated",
+    tagline: "Every asset gets a status, a 0–100 score and a coverage figure, rolled up from the endpoints below it.",
+    technicalName: "Asset-centric posture spine (RollupHierarchyPosture)",
+    blocks: [
+      {
+        kind: "p",
+        text: "Assets are first-class in ARTEX, not a side-effect of tests. Each one has business context you set (criticality tier, owner team, environment) and a posture ARTEX calculates from what was actually tested and proven.",
+      },
+      {
+        kind: "list",
+        items: [
+          "Critical exposure — an open, confirmed critical finding on the asset or anything below it.",
+          "High exposure — an open, confirmed high or medium finding.",
+          "Pending retest — a fix is being verified right now.",
+          "Validated clean — the asset and everything below it was tested, and nothing is open.",
+          "Unvalidated blind spot — at least one part was never tested. Untested is never shown as clean.",
+        ],
+      },
+      {
+        kind: "p",
+        text: "The score starts at 100 and loses points for open findings (more for critical) and for the untested share, scaled up for Tier-1 crown jewels and down for Tier-3 assets. An asset that was never validated cannot score above 50. Findings and coverage roll up: endpoint → service → subdomain or IP → root domain.",
+      },
+      {
+        kind: "example",
+        text: "The invoices API endpoint is Tier 1, owned by Platform Billing, and has a confirmed IDOR, so it shows High exposure. The same exposure rolls up to api.acme.demo.local and acme.demo.local.",
+      },
+    ],
+    links: [
+      { label: "Posture & Focus", href: "/focus" },
+      { label: "Discovered assets", href: "/function/assets" },
+    ],
+    useCase: 1,
+  },
+  {
     id: "focus-loop",
     pillar: "overview",
     title: "Focus → Mitigate & remediate → Verify",
@@ -335,33 +371,55 @@ export const ARTICLES: DocArticle[] = [
   {
     id: "safety",
     pillar: "how-it-works",
-    title: "Built-in safety brakes",
-    technicalName: "Guards, interception rules & approvals",
-    tagline: "Scope limits, budgets, an AI safety check and human sign-off keep testing safe.",
+    title: "Built-in safety brakes: three layers",
+    technicalName: "Three-layer guardrail pipeline, interception rules & approvals",
+    tagline: "A read-only policy, blast-radius budgets and human sign-off, with every decision on an audit trail.",
     useCase: 5,
     blocks: [
       {
         kind: "p",
-        text: "Autonomous does not mean unsupervised. Every command an agent wants to run passes through ARTEX's safety checks before anything is sent.",
+        text: "Autonomous does not mean unsupervised. Every action an agent wants to take passes three layers of checks before anything is sent, and the result of each check is written to the Guard Audit Trail.",
       },
       {
         kind: "steps",
         items: [
-          "Scope boundaries: only targets you put in scope are explored; anything else is refused.",
-          "Rules: each command is checked against allow, block and ask rules (for example “never touch prod-db”, “never run rm -rf”).",
-          "AI safety check: commands no rule covers can be judged by a separate model before they run.",
-          "Human approval: risky actions wait for a person to approve or deny them, and are denied if nobody answers in time.",
-          "Budgets: limits on how much AI work a task or a single step may use, plus pacing so targets are not flooded.",
+          "Layer 1 · Scope and non-destructive policy. Production and Tier-1 (crown-jewel) assets are in read-only validation: looking (GET, HEAD, OPTIONS, passive probes) is allowed, changing anything (POST, PUT, PATCH, DELETE, uploads, exploitation tools) is blocked before it leaves. Your allow, block and ask rules and the asset blocklist apply here too.",
+          "Layer 2 · Blast-radius budgets. Each task has a request budget per target host, plus token, turn and pacing limits, so a runaway agent cannot flood a system.",
+          "Layer 3 · Human in the loop. Any action against a Tier-1 asset, any state-changing test against an asset in controlled active validation, and anything the AI safety judge flags waits for a person to approve or deny it. No answer in time means no.",
         ],
       },
       {
+        kind: "compare",
+        left: {
+          title: "Read-only validation",
+          items: [
+            "Default for production and Tier-1 assets.",
+            "Proves exposure by observing, never by changing state.",
+            "Approval cannot override a block.",
+          ],
+        },
+        right: {
+          title: "Controlled active validation",
+          items: [
+            "Set explicitly per asset (typically staging).",
+            "Allows bounded state-changing tests.",
+            "The first state-changing call per task needs human approval.",
+          ],
+        },
+      },
+      {
+        kind: "example",
+        text: "A worker tries POST /v1/orders on api.acme.com (Tier 1, production). Layer 1 blocks it with the reason “read_only_validation”, and the Guard Audit Trail records worker, task, asset, rule and rationale.",
+      },
+      {
         kind: "p",
-        text: "Every decision is recorded with who made it (a person, a rule, the model or the system), so you have an audit trail.",
+        text: "Audit entries cannot be edited. Assets nobody has classified keep the standard rules, so turning this on never breaks existing tasks.",
       },
     ],
     links: [
+      { label: "Guard Audit Trail", href: "/system/intercept/audit" },
       { label: "Interception rules", href: "/system/intercept" },
-      { label: "Approval records", href: "/system/intercept/approvals" },
+      { label: "Approvals", href: "/system/intercept/approvals" },
     ],
   },
 ];
@@ -440,6 +498,24 @@ export interface GlossaryTerm {
 }
 
 export const GLOSSARY: GlossaryTerm[] = [
+  {
+    term: "Business criticality",
+    definition:
+      "How much an asset matters: Tier 1 (crown jewel), Tier 2 (business) or Tier 3 (standard). It weights the posture score and turns on extra guardrails for Tier 1.",
+    articleId: "posture-model",
+  },
+  {
+    term: "Validation mode",
+    definition:
+      "How hard ARTEX may push on an asset: read-only validation (observe only; default for production and Tier 1) or controlled active validation (bounded state-changing tests after approval).",
+    articleId: "safety",
+  },
+  {
+    term: "Guard Audit Trail",
+    definition:
+      "The append-only record of every guardrail decision: who acted, which asset, which rule, allowed / blocked / held / approved / denied, and why.",
+    articleId: "safety",
+  },
   {
     term: "Coverage Status",
     definition:
@@ -583,12 +659,13 @@ export function helpTopicFor(pathname: string, tab?: string | null): HelpTopic {
   if (p.startsWith("/focus") || p.startsWith("/dashboard"))
     return { articleId: "focus-loop", useCase: 6, screen: "Focus Queue" };
   if (p.startsWith("/coverage")) return { articleId: "vmdr-pillars", useCase: 4, screen: "Test Coverage" };
-  if (p.startsWith("/function/assets") || p.startsWith("/function/sync"))
-    return { articleId: "asset-map", useCase: 1, screen: "Assets" };
+  if (p.startsWith("/function/assets")) return { articleId: "posture-model", useCase: 1, screen: "Assets" };
+  if (p.startsWith("/function/sync")) return { articleId: "asset-map", useCase: 1, screen: "Discovery sources" };
   if (p.startsWith("/function/findings/detail"))
     return { articleId: "focus-loop", useCase: 6, screen: "Finding remediation" };
   if (p.startsWith("/function/findings")) return { articleId: "proof", useCase: 3, screen: "Findings" };
   if (p.startsWith("/function/traffic")) return { articleId: "proof", useCase: 3, screen: "Traffic" };
+  if (p.startsWith("/system/intercept/audit")) return { articleId: "safety", useCase: 5, screen: "Guard Audit Trail" };
   if (p.startsWith("/system/intercept")) return { articleId: "safety", useCase: 5, screen: "Interception" };
   if (p.startsWith("/function/tasks")) return { articleId: "step-by-step", useCase: 2, screen: "Tasks" };
   return { articleId: "vmdr-pillars", screen: "" };

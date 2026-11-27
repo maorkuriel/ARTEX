@@ -1,5 +1,7 @@
 "use client";
 
+import * as React from "react";
+
 import Link from "next/link";
 
 import { ArrowRight, Hammer, PauseCircle, RefreshCw, ShieldHalf } from "lucide-react";
@@ -7,8 +9,11 @@ import { ArrowRight, Hammer, PauseCircle, RefreshCw, ShieldHalf } from "lucide-r
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { t } from "@/i18n";
-import type { Finding } from "@/lib/types";
+import { api } from "@/lib/api";
+import type { AssetPostureDetail, Finding } from "@/lib/types";
 import { remediationFor } from "@/lib/vmdr/remediation";
+
+import { CriticalityBadge, PostureStatusBadge } from "./posture-badges";
 
 /**
  * Mitigate → Remediate → Verify guidance for one finding. Mitigation is a temporary
@@ -19,6 +24,19 @@ export function RemediationPanel({ finding }: { finding: Finding }) {
   const g = remediationFor(finding.vulnclass, finding.name);
   const asset = finding.assets?.[0]?.label;
   const closed = ["resolved", "fixed"].includes(finding.status);
+  const assetId = Number(finding.assets?.[0]?.id);
+  const [posture, setPosture] = React.useState<AssetPostureDetail | null>(null);
+  React.useEffect(() => {
+    if (!assetId) return;
+    let live = true;
+    api
+      .assetPosture(assetId)
+      .then((p) => live && setPosture(p))
+      .catch(() => live && setPosture(null));
+    return () => {
+      live = false;
+    };
+  }, [assetId]);
 
   return (
     <Card id="remediation" data-tour="finding-remediation" className="scroll-mt-28">
@@ -28,6 +46,18 @@ export function RemediationPanel({ finding }: { finding: Finding }) {
           <span className="rounded bg-muted px-1.5 py-0.5 font-normal text-muted-foreground text-xs">{g.family}</span>
         </CardTitle>
         <p className="text-muted-foreground text-sm leading-snug">{g.risk}</p>
+        {posture && (
+          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs" data-tour="finding-asset-posture">
+            <span className="text-muted-foreground">{t("Affected asset")}</span>
+            <span className="font-mono">{posture.asset.label}</span>
+            <CriticalityBadge tier={posture.asset.business_criticality} full />
+            <PostureStatusBadge status={posture.asset.posture_status} />
+            <span className="text-muted-foreground">
+              {t("owner {team}", { team: posture.asset.owner_team })} ·{" "}
+              {t("posture {score}/100", { score: String(posture.asset.posture_score) })}
+            </span>
+          </div>
+        )}
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         <div className="grid gap-3 xl:grid-cols-2">

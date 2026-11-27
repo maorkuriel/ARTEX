@@ -3194,6 +3194,18 @@ function CreateTaskSheet({
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const sheetContentRef = React.useRef<HTMLDivElement>(null);
 
+  // ?new=1&name=…&description=…&goal=… (e.g. "Schedule safe validation" from the Focus Queue)
+  // opens this sheet prefilled; the operator still reviews and confirms the task.
+  React.useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    if (sp.get("new") !== "1") return;
+    setName(sp.get("name") ?? "");
+    setDescription(sp.get("description") ?? "");
+    setGoal(sp.get("goal") ?? "");
+    setOpen(true);
+    window.history.replaceState(null, "", window.location.pathname);
+  }, []);
+
   // load LLM profiles once for the create-task profile picker.
   React.useEffect(() => {
     api

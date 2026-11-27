@@ -257,6 +257,15 @@ export interface Asset {
   task_source?: string;
   task_source_summary?: string;
   task_source_node_id?: number;
+  // VMDR posture (additive)
+  business_criticality?: BusinessCriticality;
+  owner_team?: string;
+  environment?: AssetEnvironment | "";
+  validation_mode?: ValidationMode | "";
+  posture_status?: PostureStatus;
+  posture_score?: number;
+  last_validated_at?: string;
+  validation_coverage_pct?: number;
 }
 
 export interface IntentAsset {
@@ -1871,4 +1880,91 @@ export interface TamperTraceLine {
 export interface TamperDryRunResult extends TamperDryRunIO {
   changed: boolean;
   lines: TamperTraceLine[] | null;
+}
+
+// ---- Asset-centric posture & guardrails ----
+export type BusinessCriticality = "tier_1_crown_jewel" | "tier_2_business" | "tier_3_standard";
+export type AssetEnvironment = "production" | "staging" | "development";
+export type ValidationMode = "read_only_validation" | "controlled_active_validation";
+export type PostureStatus =
+  | "critical_exposure"
+  | "high_exposure"
+  | "validated_clean"
+  | "unvalidated_blind_spot"
+  | "pending_retest";
+
+export interface PostureAssetRef {
+  id: number;
+  type: string;
+  label: string;
+  business_criticality: BusinessCriticality;
+  owner_team: string;
+  environment?: AssetEnvironment | "";
+  posture_status: PostureStatus;
+  posture_score: number;
+  validation_coverage_pct: number;
+}
+
+export interface PostureSummary {
+  overall_score: number;
+  asset_total: number;
+  by_status: Partial<Record<PostureStatus, number>>;
+  by_criticality: Partial<Record<BusinessCriticality, number>>;
+  coverage_pct: number;
+  validated_assets: number;
+  blind_spots: number;
+  tier1: { total: number; critical_exposures: number; high_exposures: number; blind_spots: number };
+  pending_approvals: number;
+  fixes_awaiting_verification: number;
+  overdue_retests: number;
+  computed_at: string;
+  high_value_blind_spots: PostureAssetRef[] | null;
+  top_exposed_assets: PostureAssetRef[] | null;
+}
+
+export interface GuardAuditEvent {
+  id: number;
+  timestamp: string;
+  actor: string;
+  task_id?: string;
+  tool_name?: string;
+  target?: string;
+  target_asset_id?: number;
+  layer: 1 | 2 | 3;
+  policy_rule: string;
+  decision: "allowed" | "blocked" | "held_for_approval" | "approved" | "denied";
+  rationale: string;
+}
+
+export interface PostureFinding {
+  id: number;
+  name: string;
+  vulnclass: string;
+  severity: Severity;
+  status: FindingStatus;
+  asset_id: number;
+  evidence_receipts: number;
+  latest_retest_verdict?: string;
+}
+
+export interface AssetPostureDetail {
+  asset: PostureAssetRef;
+  validation_mode: ValidationMode | "";
+  effective_validation_mode: ValidationMode | "";
+  last_validated_at?: string;
+  upstream: PostureAssetRef[];
+  downstream: PostureAssetRef[];
+  downstream_total: number;
+  downstream_untested: number;
+  anchors: number;
+  findings: PostureFinding[];
+  recommendations: string[];
+  guard_events: GuardAuditEvent[];
+}
+
+export interface AssetMetadataPatch {
+  business_criticality?: BusinessCriticality;
+  owner_team?: string;
+  environment?: AssetEnvironment | "";
+  validation_mode?: ValidationMode | "";
 }

@@ -60,6 +60,7 @@ import {
 } from "@/components/ui/sheet";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PostureCell } from "@/components/vmdr/posture-badges";
 import { t } from "@/i18n";
 import { api } from "@/lib/api";
 import { parseCompanyScopeText } from "@/lib/company-scope";
@@ -462,7 +463,7 @@ function AssetsPageInner() {
         <TabsContent value="root_domain" className="mt-0 flex min-h-0 flex-1 flex-col gap-2">
           {searchBox}
           <AssetCard
-            cols={["", "Domain", "ICP filing", "Company", ""]}
+            cols={["", "Domain", "ICP filing", "Company", "Posture", ""]}
             loaded={loaded}
             total={total}
             page={page}
@@ -490,6 +491,14 @@ function AssetsPageInner() {
                 <TableCell className="text-xs">
                   {companyName(a.company_id) || <span className="text-muted-foreground">{t("Unassigned")}</span>}
                 </TableCell>
+                <TableCell>
+                  <PostureCell
+                    status={a.posture_status}
+                    score={a.posture_score}
+                    tier={a.business_criticality}
+                    owner={a.owner_team}
+                  />
+                </TableCell>
                 <TableCell className="w-8 pl-0">
                   <Button
                     variant="ghost"
@@ -510,7 +519,7 @@ function AssetsPageInner() {
         <TabsContent value="ip" className="mt-0 flex min-h-0 flex-1 flex-col gap-2">
           {searchBox}
           <AssetCard
-            cols={["", "IP", "C-segment", "Bound domains", "Open ports", ""]}
+            cols={["", "IP", "C-segment", "Bound domains", "Open ports", "Posture", ""]}
             loaded={loaded}
             total={total}
             page={page}
@@ -544,6 +553,14 @@ function AssetsPageInner() {
                     mono
                   />
                 </TableCell>
+                <TableCell>
+                  <PostureCell
+                    status={a.posture_status}
+                    score={a.posture_score}
+                    tier={a.business_criticality}
+                    owner={a.owner_team}
+                  />
+                </TableCell>
                 <TableCell className="w-8 pl-0">
                   <Button
                     variant="ghost"
@@ -564,7 +581,7 @@ function AssetsPageInner() {
         <TabsContent value="subdomain" className="mt-0 flex min-h-0 flex-1 flex-col gap-2">
           {searchBox}
           <AssetCard
-            cols={["", "Domain", "Root domain", "Record type", "Record value", ""]}
+            cols={["", "Domain", "Root domain", "Record type", "Record value", "Posture", ""]}
             loaded={loaded}
             total={total}
             page={page}
@@ -593,6 +610,14 @@ function AssetsPageInner() {
                 <TableCell className="max-w-xs truncate font-mono text-xs">
                   {(Array.isArray(a.record_value) ? a.record_value.join(", ") : a.record_value) || "—"}
                 </TableCell>
+                <TableCell>
+                  <PostureCell
+                    status={a.posture_status}
+                    score={a.posture_score}
+                    tier={a.business_criticality}
+                    owner={a.owner_team}
+                  />
+                </TableCell>
                 <TableCell className="w-8 pl-0">
                   <Button
                     variant="ghost"
@@ -613,7 +638,7 @@ function AssetsPageInner() {
         <TabsContent value="app" className="mt-0 flex min-h-0 flex-1 flex-col gap-2">
           {searchBox}
           <AssetCard
-            cols={["", "App name", "Bundle ID", "Category", "ICP filing", ""]}
+            cols={["", "App name", "Bundle ID", "Category", "ICP filing", "Posture", ""]}
             loaded={loaded}
             total={total}
             page={page}
@@ -640,6 +665,14 @@ function AssetsPageInner() {
                 <TableCell className="font-mono text-xs">{a.bundle_id || "—"}</TableCell>
                 <TableCell className="text-xs">{a.category || "—"}</TableCell>
                 <TableCell className="text-xs">{a.app_icp || "—"}</TableCell>
+                <TableCell>
+                  <PostureCell
+                    status={a.posture_status}
+                    score={a.posture_score}
+                    tier={a.business_criticality}
+                    owner={a.owner_team}
+                  />
+                </TableCell>
                 <TableCell className="w-8 pl-0">
                   <Button
                     variant="ghost"
@@ -660,7 +693,7 @@ function AssetsPageInner() {
         <TabsContent value="service" className="mt-0 flex min-h-0 flex-1 flex-col gap-2">
           {searchBox}
           <AssetCard
-            cols={["", "Service", "Domain", "IP", "Port", "Status", "Title", "Fingerprint", "Auth", ""]}
+            cols={["", "Service", "Domain", "IP", "Port", "Status", "Title", "Fingerprint", "Auth", "Posture", ""]}
             loaded={loaded}
             total={total}
             page={page}
@@ -743,6 +776,14 @@ function AssetsPageInner() {
                       })
                     )}
                   </TableCell>
+                  <TableCell>
+                    <PostureCell
+                      status={a.posture_status}
+                      score={a.posture_score}
+                      tier={a.business_criticality}
+                      owner={a.owner_team}
+                    />
+                  </TableCell>
                   <TableCell className="w-8 pl-0">
                     <Button
                       variant="ghost"
@@ -764,7 +805,7 @@ function AssetsPageInner() {
         <TabsContent value="endpoint" className="mt-0 flex min-h-0 flex-1 flex-col gap-2">
           {searchBox}
           <AssetCard
-            cols={["", "Method", "Full URL", "Params", ""]}
+            cols={["", "Method", "Full URL", "Params", "Posture", ""]}
             loaded={loaded}
             total={total}
             page={page}
@@ -800,6 +841,14 @@ function AssetsPageInner() {
                       return item.name ? `${item.name}(${item.location || "?"})` : "?";
                     })}
                     mono
+                  />
+                </TableCell>
+                <TableCell>
+                  <PostureCell
+                    status={a.posture_status}
+                    score={a.posture_score}
+                    tier={a.business_criticality}
+                    owner={a.owner_team}
                   />
                 </TableCell>
                 <TableCell className="w-8 pl-0">

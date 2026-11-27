@@ -55,6 +55,10 @@ import type {
   InterceptApprovalRow,
   InterceptDetail,
   InterceptPending,
+  AssetMetadataPatch,
+  AssetPostureDetail,
+  GuardAuditEvent,
+  PostureSummary,
   InterceptRule,
   JudgeConfig,
   JudgeUsage,
@@ -1420,6 +1424,27 @@ export const api = {
   toggleAssetInterceptRule: (id: number, enabled: boolean) =>
     post<{ ok: boolean; enabled: boolean }>(`/asset-intercept/rules/${id}/toggle`, { enabled }),
   /** Rule tester: which enabled rule (if any) would block this domain / IP / URL. */
+  // ---- asset-centric posture & guardrail audit ----
+  postureSummary: (company?: string, refresh = false) => {
+    const p = new URLSearchParams();
+    if (company) p.set("company", company);
+    if (refresh) p.set("refresh", "1");
+    const q = p.toString();
+    return get<PostureSummary>(`/posture/summary${q ? `?${q}` : ""}`);
+  },
+  assetPosture: (id: number) => get<AssetPostureDetail>(`/assets/${id}/posture`),
+  updateAssetMetadata: (id: number, body: AssetMetadataPatch) =>
+    patch<AssetPostureDetail>(`/assets/${id}/metadata`, body),
+  guardAudit: (q: { task?: string; asset?: number; decision?: string; layer?: number; limit?: number } = {}) => {
+    const p = new URLSearchParams();
+    for (const [k, v] of Object.entries(q)) if (v !== undefined && v !== "" && v !== 0) p.set(k, String(v));
+    const qs = p.toString();
+    return get<{ events: GuardAuditEvent[]; counts_30d: Record<string, number> }>(`/guards/audit${qs ? `?${qs}` : ""}`);
+  },
+  guardBudgets: () =>
+    get<{ budget: number; hosts: { task_id: string; host: string; requests: number; budget: number; blocked: boolean }[] }>(
+      "/guards/budgets",
+    ),
   checkAssetIntercept: (target: string) =>
     post<{ target: string; blocked: boolean; rule?: AssetInterceptRule; matched_value?: string }>(
       "/asset-intercept/check",

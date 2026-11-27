@@ -13,8 +13,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { CriticalityBadge } from "@/components/vmdr/posture-badges";
 import { t } from "@/i18n";
+import { api } from "@/lib/api";
 import { statusMeta } from "@/lib/status";
+import type { PostureSummary } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { type TaskCoverageRow, usePostureData } from "@/lib/vmdr/posture";
 import { useActiveCompany } from "@/stores/company/company-store";
@@ -44,6 +47,17 @@ function barTone(pct: number) {
 export default function CoveragePage() {
   const company = useActiveCompany();
   const d = usePostureData(company, { retests: false });
+  const [summary, setSummary] = React.useState<PostureSummary | null>(null);
+  React.useEffect(() => {
+    let live = true;
+    api
+      .postureSummary(company)
+      .then((s) => live && setSummary(s))
+      .catch(() => live && setSummary(null));
+    return () => {
+      live = false;
+    };
+  }, [company]);
 
   const rows = React.useMemo(
     () =>
@@ -227,6 +241,30 @@ export default function CoveragePage() {
         </Card>
 
         <aside className="grid content-start gap-4 md:grid-cols-2 2xl:grid-cols-1">
+          <Card data-tour="coverage-blind-spots" className="md:col-span-2 2xl:col-span-1">
+            <CardHeader>
+              <CardTitle className="text-base">{t("High-criticality blind spots")}</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-2">
+              {(summary?.high_value_blind_spots ?? []).length === 0 && (
+                <p className="text-muted-foreground text-sm">
+                  {t("Every Tier-1 and Tier-2 asset has been validated.")}
+                </p>
+              )}
+              {(summary?.high_value_blind_spots ?? []).slice(0, 8).map((a) => (
+                <Link
+                  key={a.id}
+                  prefetch={false}
+                  href={`/function/assets/?type=${a.type}&inspect=${a.id}`}
+                  className="flex items-center gap-2 rounded-md border px-2 py-1.5 text-sm hover:bg-muted"
+                >
+                  <CriticalityBadge tier={a.business_criticality} />
+                  <span className="min-w-0 flex-1 truncate font-mono text-xs">{a.label}</span>
+                  <span className="shrink-0 text-muted-foreground text-xs">{a.owner_team}</span>
+                </Link>
+              ))}
+            </CardContent>
+          </Card>
           <Card>
             <CardHeader>
               <CardTitle className="text-base">{t("Tested vs. untested by asset type")}</CardTitle>

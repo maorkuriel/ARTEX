@@ -18,6 +18,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Autumn-27/artex/db"
 	"github.com/Autumn-27/artex/intercept"
 	"github.com/Autumn-27/norma/hook"
 )
@@ -158,6 +159,13 @@ func (g *Guard) applyIntercept(ctx context.Context, ev hook.Event, cmd string) h
 			return g.block(ev.ToolName, systemBlockMessage(dec.Message), cmd)
 		}
 	}
+	// Posture guardrails (Layer 1 read-only policy, Layer 2 host budgets, Layer 3
+	// crown-jewel / active-validation approvals) run first for every worker call.
+	if !g.targetOnly && g.interceptor != nil {
+		if res, done := g.applyPosture(ctx, ev, cmd); done {
+			return res
+		}
+	}
 	scope, gated := g.gateScope(ctx)
 	rules := !g.targetOnly && g.interceptor != nil && g.interceptor.IsToolEnabled(ev.ToolName)
 	// Persistence tools (custom tools, MCP servers, skills) always meet their built-in
@@ -183,6 +191,7 @@ func (g *Guard) applyIntercept(ctx context.Context, ev hook.Event, cmd string) h
 	if dec.Action == "deny" {
 		// Note: a deny hit does not block for approval; it directly logs a denied entry (visible on the history / task interception pages).
 		g.interceptor.Log(ctx, intercept.ConvIDFromContext(ctx), dec, ev.ToolName, ev.Input, "denied")
+		g.interceptor.RecordGuard(ctx, ev.ToolName, ruleAudit(dec), db.GuardBlocked)
 		return g.block(ev.ToolName, systemBlockMessage(dec.Message), cmd)
 	}
 	var unpinned []intercept.TargetRequest
@@ -218,11 +227,54 @@ func (g *Guard) applyIntercept(ctx context.Context, ev hook.Event, cmd string) h
 	}
 	if ask != nil {
 		convID := intercept.ConvIDFromContext(ctx)
+		ra := ruleAudit(dec)
+		g.interceptor.RecordGuard(ctx, ev.ToolName, ra, db.GuardHeldForApproval)
 		if !g.interceptor.HandleAsk(ctx, convID, dec, ev.ToolName, ev.Input) {
+			g.interceptor.RecordGuard(ctx, ev.ToolName, ra, db.GuardDenied)
 			return g.block(ev.ToolName, systemBlockMessage("manual approval not granted (user rejected or approval timed out)"), cmd)
 		}
+		g.interceptor.RecordGuard(ctx, ev.ToolName, ra, db.GuardApproved)
 	}
 	return hook.Result{}
+}
+
+// ruleAudit describes an intercept-rule or judge decision for the guard audit
+// trail: rule hits are Layer 1 policy, judge escalations are Layer 3.
+func ruleAudit(dec intercept.Decision) intercept.PostureDecision {
+	if dec.ModelFallback {
+		return intercept.PostureDecision{Rule: "llm_safety_judge", Layer: 3, Reason: dec.Message}
+	}
+	name := dec.RuleName
+	if name == "" {
+		name = "intercept_rule"
+	}
+	return intercept.PostureDecision{Rule: "rule:" + name, Layer: 1, Reason: dec.Message}
+}
+
+// applyPosture runs the posture guardrails for one worker call. done reports
+// that the call was decided (blocked) here.
+func (g *Guard) applyPosture(ctx context.Context, ev hook.Event, cmd string) (hook.Result, bool) {
+	pd := g.interceptor.EvaluatePosture(ctx, ev.ToolName, ev.Input)
+	switch pd.Action {
+	case "deny":
+		g.interceptor.RecordGuard(ctx, ev.ToolName, pd, db.GuardBlocked)
+		return g.block(ev.ToolName, systemBlockMessage(pd.Reason), cmd), true
+	case "ask":
+		if ctx.Err() != nil {
+			return g.block(ev.ToolName, systemBlockMessage("work cancelled; platform safety controls blocked execution"), cmd), true
+		}
+		g.interceptor.RecordGuard(ctx, ev.ToolName, pd, db.GuardHeldForApproval)
+		cctx := intercept.WithCall(ctx, ev.ToolName, ev.Input)
+		if !g.interceptor.HandleAsk(cctx, intercept.ConvIDFromContext(ctx), intercept.PostureAskDecision(pd), ev.ToolName, ev.Input) {
+			g.interceptor.RecordGuard(ctx, ev.ToolName, pd, db.GuardDenied)
+			return g.block(ev.ToolName, systemBlockMessage("manual approval not granted: "+pd.Reason), cmd), true
+		}
+		g.interceptor.RecordGuard(ctx, ev.ToolName, pd, db.GuardApproved)
+		g.interceptor.MarkPostureApproved(ctx, pd.AssetID, pd.Rule)
+	case "allow":
+		g.interceptor.RecordGuard(ctx, ev.ToolName, pd, db.GuardAllowed)
+	}
+	return hook.Result{}, false
 }
 
 // requestTargets asks for the approval of the targets no pin covers, waits for

@@ -107,6 +107,7 @@ export const sidebarItems: NavGroup[] = [
       { id: "intercept", title: t("Scope & Interception Rules"), url: "/system/intercept", icon: ShieldAlert },
       { id: "asset-intercept", title: t("Asset Blocklist"), url: "/system/intercept/assets", icon: Ban },
       { id: "approvals", title: t("Approvals"), url: "/system/intercept/approvals", icon: ClipboardList },
+      { id: "guard-audit", title: t("Guard Audit Trail"), url: "/system/intercept/audit", icon: ScrollText },
     ],
   },
   {

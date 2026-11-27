@@ -48,7 +48,7 @@ Operations, System and Learn. See the README's
 
 ---
 
-## The six VMDR use cases (12 steps)
+## The six VMDR use cases (14 steps)
 
 Every step lands on seeded, populated data (on first load and after **Reset Demo**). IDs below
 are the deterministic seed rows the step deep-links to.
@@ -59,18 +59,27 @@ are the deterministic seed rows the step deep-links to.
 | 1.2 | | Assets → Endpoints tab | The root-domain → subdomain → IP → service → app → endpoint hierarchy. |
 | 1.3 | | Asset inspector `#9210` | Dedup key for `GET https://api.acme.demo.local/api/v2/invoices/{id}` + **3 merged task observations**. |
 | 1.4 | | Asset inspector `#9210` | Findings from two different tasks (IDOR from 9006, stack trace from 9005) on the same node. |
+| 1.5 | | Asset inspector `#9210` → Asset posture | **Tier 1 · Crown jewel**, owner **Platform Billing**, production, posture *High exposure* with score and validation coverage; **Edit context → Save & recalculate** updates the score. |
 | 2.1 | **Finding Real Attack Paths** | Task `9001` → Exploration graph | Start → intent → fact → finding → Goal chain (2 goals, 3 findings) joined by 2 `proves` edges. |
 | 3.1 | **Eliminating False Positives with Proof** | Finding `9005` detail | Critical Fastjson RCE, *Verified L4*, Linked traffic `POST /api/import → 200` (View message), Exploration-graph tab = worker trace. |
 | 4.1 | **Spotting Testing Blind Spots** | Task `9001` → Asset coverage | *In scope 13 · Tested 3*: tested assets are highlighted in color, untested ones are gray. |
 | 5.1 | **Safe Testing with Guardrails** | Scope & Guardrails → Scope & Interception Rules | Top rule (priority 120) **blocks `prod-db.acme.demo.local`**; deny destructive shell; allow nuclei; ask before sqlmap. |
 | 5.2 | | Task `9001` → Interception approval | A pending `sqlmap` request waiting for a human **Approve / Deny** (120 s timeout → deny). |
+| 5.3 | | Scope & Guardrails → Guard Audit Trail | Three-layer explainer and seeded decisions: L1 `read_only_validation` blocks (POST on Tier-1 APIs), L2 `host_request_budget` block, L3 Tier-1 approval held → approved / denied, LLM safety-judge escalation, controlled-active approval on `admin-staging`. |
 | 6.1 | **Proving Fixes Fast** | Risk Exposure → Finding `9006` detail | *Mitigation & remediation* panel: **1 · Mitigate now** (restrict the console to the VPN, lockout), **2 · Remediate** (rotate the password, MFA, deploy-time defaults check), **3 · Verify** (expect 401/403) + **Launch retest**. |
 | 6.2 | | Task `9001` → Retests | Finding 9006 (default creds): retest `#9002` *Still reproducible* (200 OK) → retest `#9003` *Fixed* (403 Forbidden); **Start retest** runs a new one. |
-| 6.3 | | Posture & Focus → Focus Queue | Posture grade with its factors and the ranked next actions (open findings, the pending approval, unverified fixes, coverage gaps), each tagged with its pillar. |
+| 6.3 | | Posture & Focus | KPI strip (Overall Posture Score, Tier-1 exposures, validated coverage, blind spots, pending guard approvals) and *Where to focus now*: proven exposures → high-criticality blind spots (**Schedule safe validation**) → held approvals → fixes awaiting verification (**Launch targeted retest**). |
 
 README-ready screenshots of each use case (1600×1000, light mode) live in
 [`screenshots/vmdr/`](screenshots/vmdr/) and are embedded in the
 [README's VMDR section](README.md#vmdr-ecosystem-use-cases).
+
+### Posture & guardrail demo data
+Every demo asset has a business criticality, owner team, environment and (for
+`admin-staging.acme.demo.local`) an explicit `controlled_active_validation` mode; production and
+Tier-1 assets derive `read_only_validation`. Posture status and score are computed by the
+rollup on first read after seeding. Twelve `guard_audit_events` (ids 9001–9012) cover every
+layer and decision. Re-running `scripts/demo/seed.sh` restores all of it.
 
 > Deciding the pending approval in step 5.2 changes real data. Re-run `scripts/demo/seed.sh`
 > to put it back (the seed is idempotent and only touches ids ≥ 9000). **Reset Demo** on the card
@@ -100,7 +109,7 @@ indexes in `db/schema.sql`), parent → child lineage, the contributing tasks (`
 findings attached to that node from any task.
 
 ### Verifying the walkthrough
-Walk all 12 steps in **both** personas with the deep link, e.g.
+Walk all 14 steps in **both** personas with the deep link, e.g.
 `http://localhost:8787/function/assets/?tour=1&step=1&persona=executive` then **Next** through to **Finish**,
 switching persona on any step (copy swaps in place; the screen does not move). Run
 `scripts/demo/seed.sh` and restart `artex` first so the tasks are loaded.
