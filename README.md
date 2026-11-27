@@ -16,7 +16,7 @@ and every finding stays bound to the assets and HTTP traffic that prove it.
 [![Go](https://img.shields.io/github/go-mod/go-version/BaaRai/ARTEX?color=6b34db)](go.mod)
 [![Discord](https://img.shields.io/badge/Discord-join%20the%20server-5865F2?logo=discord&logoColor=white)](https://discord.gg/VKyvMTcgXh)
 
-[VMDR use cases](#vmdr-ecosystem-use-cases) · [Guided walkthrough](#in-product-guided-walkthrough) · [Quick start](#quick-start) · [How it works](#how-it-works) · [Architecture](#architecture) · [Install](#installation) · [Configuration](#configuration) · [Security](SECURITY.md)
+[VMDR use cases](#vmdr-ecosystem-use-cases) · [Guided walkthrough](#in-product-guided-walkthrough) · [In-product docs](#in-product-documentation-center) · [Quick start](#quick-start) · [How it works](#how-it-works) · [Architecture](#architecture) · [Install](#installation) · [Configuration](#configuration) · [Security](SECURITY.md)
 
 [![Join us on Discord](https://img.shields.io/badge/JOIN%20US%20ON-DISCORD-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/VKyvMTcgXh)
 
@@ -209,6 +209,30 @@ two audiences:
 
 Step-by-step screens, seeded IDs and reset notes are in [DEMO.md](DEMO.md); local setup, both
 run modes and troubleshooting are in [DEMO_RUNBOOK.md](DEMO_RUNBOOK.md).
+
+## In-Product Documentation Center
+
+Users can learn ARTEX without leaving the product, in plain, jargon-light language:
+
+- **Learn ARTEX hub (`/docs`)**: open **Docs** in the top header or **Learn → Learn ARTEX** in the
+  sidebar. A table of contents that follows the scroll, instant keyword search and scannable cards
+  cover four parts:
+  1. **What is ARTEX?** A plain-English overview, plus *traditional scanning vs. ARTEX validation*.
+  2. **How ARTEX works**, in four building blocks: one shared asset map (Asset Graph), step-by-step
+     thinking (Exploration Graph), camera-like proof (evidence receipts) and built-in safety brakes
+     (guards and approvals).
+  3. **How VMDR teams benefit**: six *Problem → How ARTEX helps → Outcome* cards, each with a
+     **See it live in walkthrough** button that opens that chapter of the Guided Walkthrough.
+  4. **Glossary & where to start**: everyday definitions (Asset Graph, Exploration Graph,
+     Exploration Anchor, Traffic Receipt, Guard Gate, Retest Session, …) and starting paths for
+     CISOs/security leaders and for security engineers/AppSec analysts.
+- **"How this works" drawer**: the **?** button in the header (and in a task's header) opens a
+  slide-over with the guide for the screen you are on, for example the Asset coverage tab opens
+  *Step-by-step thinking* and the *Clear testing blind spots* outcome. The drawer does not block
+  the page, so the graph stays usable while you read. **Open in Docs** jumps to the same guide in
+  the hub.
+
+All copy lives in `web/src/lib/docs/content.ts`, so the hub and the drawer always say the same thing.
 
 ---
 
@@ -1153,7 +1177,7 @@ flowchart TB
 | `enrich/`, `mcphttp/`, `notify/`, `report/`, `sidequestion/`, `archivestore/` | DNS/HTTP enrichment, MCP client, notifications, reports, operator Q&A, task archive storage |
 | `config/` | Config file + environment resolution |
 | `skills/` | Skill definitions (`SKILL.md` per directory) |
-| `web/` | Next.js 16 / React 19 UI (static export embedded with `go:embed`), incl. the Guided Walkthrough |
+| `web/` | Next.js 16 / React 19 UI (static export embedded with `go:embed`), incl. the Guided Walkthrough and the `/docs` Documentation Center |
 | `extension/` | Browser extension for authenticated traffic capture |
 | `scripts/` | CI/verify helpers and `scripts/demo/` (deterministic demo seed and reset) |
 | `docs/` | Architecture, operations and traffic subsystem docs |

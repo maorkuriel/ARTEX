@@ -2,6 +2,7 @@ import {
   Activity,
   Ban,
   BellRing,
+  BookOpen,
   Bot,
   Brain,
   Bug,
@@ -96,5 +97,10 @@ export const sidebarItems: NavGroup[] = [
       { id: "logs", title: t("Logs"), url: "/system/logs", icon: ScrollText },
       { id: "settings", title: t("System Settings"), url: "/system/settings", icon: Settings2 },
     ],
+  },
+  {
+    id: 3,
+    label: t("Learn"),
+    items: [{ id: "docs", title: t("Learn ARTEX"), url: "/docs", icon: BookOpen }],
   },
 ];

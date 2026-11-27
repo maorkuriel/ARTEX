@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 
 import { X } from "lucide-react";
 
+import { DocsLink, HelpButton } from "@/components/docs/help-drawer";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { WalkthroughLauncher } from "@/components/walkthrough/walkthrough";
@@ -123,10 +124,13 @@ export function MainContent({ children }: { children: ReactNode }) {
           </div>
           <div className="flex items-center gap-2">
             {version && (
-              <span className="font-medium text-muted-foreground text-xs tabular-nums">
+              <span className="hidden font-medium text-muted-foreground text-xs tabular-nums sm:inline">
                 {t("Version · {version}", { version })}
               </span>
             )}
+            {/* On phones the Docs entry lives in the sidebar ("Learn ARTEX") to keep the header on one line. */}
+            <DocsLink className="hidden sm:inline-flex" />
+            <HelpButton />
             <WalkthroughLauncher />
             <LayoutControls />
             <ThemeSwitcher />

@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import * as React from "react";
 
 import { AppSidebar } from "@/app/(main)/_components/sidebar/app-sidebar";
+import { HelpDrawer } from "@/components/docs/help-drawer";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { Walkthrough } from "@/components/walkthrough/walkthrough";
 import { auth } from "@/lib/auth";
@@ -83,6 +84,7 @@ export default function Layout({ children }: Readonly<{ children: ReactNode }>) 
         <MainContent>{children}</MainContent>
       </SidebarInset>
       <Walkthrough />
+      <HelpDrawer />
     </SidebarProvider>
   );
 }

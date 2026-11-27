@@ -8,6 +8,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ArchiveIcon, ArrowLeftIcon, BrainIcon, CheckIcon, CircleAlertIcon, PauseIcon, PlayIcon } from "lucide-react";
 import { toast } from "sonner";
 
+import { HelpButton } from "@/components/docs/help-drawer";
 import { StatusBadge } from "@/components/status-badge";
 import { TaskLLMProfileChain } from "@/components/task-llm-profile-chain";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -452,6 +453,7 @@ function TaskDetailInner() {
               <TooltipContent>{archiveDisabledReason}</TooltipContent>
             </Tooltip>
           )}
+          <HelpButton compact />
           <Button size="sm" variant={controlVariant} onClick={togglePause} disabled={terminal}>
             {controlIcon}
             {controlLabel}
