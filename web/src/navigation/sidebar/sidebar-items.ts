@@ -90,7 +90,7 @@ export const sidebarItems: NavGroup[] = [
   {
     id: 3,
     label: t("Coverage Status"),
-    items: [{ id: "coverage", title: t("Test Coverage"), url: "/coverage", icon: Radar }],
+    items: [{ id: "coverage", title: t("Coverage Intelligence"), url: "/coverage", icon: Radar }],
   },
   {
     id: 4,

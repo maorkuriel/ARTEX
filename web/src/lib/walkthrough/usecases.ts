@@ -295,6 +295,36 @@ export const STEPS: Step[] = [
     },
   },
 
+  {
+    id: "uc4-blind-spots",
+    useCase: 4,
+    headline: "Every blind spot has a reason, and a safe fix",
+    path: "/coverage",
+    anchor: "blind-spot-queue",
+    executive: {
+      painPoint:
+        "“Untested” hides very different problems: forgotten assets, blocked logins, stalled runs, deliberate exclusions — and nobody knows which one to chase.",
+      lookingAt:
+        "Coverage Intelligence for acme.demo.local: in-scope and Tier-1 coverage, then every blind spot with its root cause — never tested, awaiting approval (the webhooks replay endpoint), blocked by auth/WAF (the portal export), budget exhausted, cadence expired (admin-staging) and out of scope (prod-db).",
+      howArtex:
+        "ARTEX proves coverage from exploration anchors, explains each gap from real evidence (approvals, 401/403 receipts, exhausted runs, scope rules, cadence policies) and ranks the queue by business criticality.",
+      tryThis:
+        "Click the “Never tested” pill, then Validate safely on a row: it runs a guardrailed read-only check and the asset leaves the queue. Tier-1 rows go to the approval queue first.",
+      valueShipped:
+        "Coverage you can defend: the exact reason behind every gap and a one-click, guardrailed way to close it.",
+    },
+    analyst: {
+      painPoint: "Coverage percentages from scanners can't tell you why an endpoint was never exercised.",
+      lookingAt:
+        "GET /api/coverage/blind-spots: coverage_state, blind_spot_reason, anchor_count / intent_anchor_count, validation_cadence_days and next_validation_due_at per asset, plus the cadence policies (Tier 1: 7 days, Tier 2: 14, Tier 3: 30).",
+      howArtex:
+        "Only confirmed facts/findings and completed intents count as validation anchors. Reasons are classified in priority order: awaiting_guard_approval > blocked_by_auth_or_waf > budget_exhausted > never_tested; anchored-but-old assets are stale_validation / cadence_expired.",
+      tryThis:
+        "Open a row to see its Anchor provenance timeline, then POST /api/coverage/validate-blind-spots via Validate selected — out-of-scope rows are rejected, Tier-1 rows are held.",
+      valueShipped: "Deterministic, evidence-backed coverage telemetry with guardrailed remediation of blind spots.",
+    },
+  },
+
   // ═══════════════ Use Case 5 — Safe Testing with Guardrails ═══════════════
   {
     id: "uc5-guardrails",

@@ -48,7 +48,7 @@ Operations, System and Learn. See the README's
 
 ---
 
-## The six VMDR use cases (14 steps)
+## The six VMDR use cases (15 steps)
 
 Every step lands on seeded, populated data (on first load and after **Reset Demo**). IDs below
 are the deterministic seed rows the step deep-links to.
@@ -63,6 +63,7 @@ are the deterministic seed rows the step deep-links to.
 | 2.1 | **Finding Real Attack Paths** | Task `9001` → Exploration graph | Start → intent → fact → finding → Goal chain (2 goals, 3 findings) joined by 2 `proves` edges. |
 | 3.1 | **Eliminating False Positives with Proof** | Finding `9005` detail | Critical Fastjson RCE, *Verified L4*, Linked traffic `POST /api/import → 200` (View message), Exploration-graph tab = worker trace. |
 | 4.1 | **Spotting Testing Blind Spots** | Task `9001` → Asset coverage | *In scope 13 · Tested 3*: tested assets are highlighted in color, untested ones are gray. |
+| 4.2 | | Coverage Status → Coverage Intelligence | KPI strip (in-scope, Tier-1, blind spots, stale, out-of-scope) and reason pills. `acme.demo.local` shows every category: **never tested** (`198.51.100.22`, mobile apps), **awaiting approval** (`POST /api/v2/webhooks/replay`, Tier 1), **blocked by auth/WAF** (`/internal/export`, 403 from the WAF), **budget exhausted** (`portal.acme.demo.local`, crawl ran out of turns), **cadence expired** (`admin-staging`, 20 days vs. 14-day cadence), **out of scope** (`prod-db`). **Validate safely** runs a simulated read-only check; Tier-1 rows go to Approvals. |
 | 5.1 | **Safe Testing with Guardrails** | Scope & Guardrails → Scope & Interception Rules | Top rule (priority 120) **blocks `prod-db.acme.demo.local`**; deny destructive shell; allow nuclei; ask before sqlmap. |
 | 5.2 | | Task `9001` → Interception approval | A pending `sqlmap` request waiting for a human **Approve / Deny** (120 s timeout → deny). |
 | 5.3 | | Scope & Guardrails → Guard Audit Trail | Three-layer explainer and seeded decisions: L1 `read_only_validation` blocks (POST on Tier-1 APIs), L2 `host_request_budget` block, L3 Tier-1 approval held → approved / denied, LLM safety-judge escalation, controlled-active approval on `admin-staging`. |
@@ -73,6 +74,14 @@ are the deterministic seed rows the step deep-links to.
 README-ready screenshots of each use case (1600×1000, light mode) live in
 [`screenshots/vmdr/`](screenshots/vmdr/) and are embedded in the
 [README's VMDR section](README.md#vmdr-ecosystem-use-cases).
+
+### Coverage & blind-spot demo data
+Coverage freshness is seeded relative to *now*, so the classification is the same on any day.
+The seed adds the webhooks replay endpoint (`9214`) and `prod-db.acme.demo.local` (`9215`), a
+pending Tier-1 approval (`9006`), a WAF follow-up in the coverage ledger, an exhausted crawl
+intent (`9305`), three tier policies (`9001`–`9003`), and turns on
+`coverage_simulated_validation`. **Validate safely** writes new anchored nodes; re-running
+`scripts/demo/seed.sh` removes them and restores the initial coverage and anchor state.
 
 ### Posture & guardrail demo data
 Every demo asset has a business criticality, owner team, environment and (for
@@ -109,7 +118,7 @@ indexes in `db/schema.sql`), parent → child lineage, the contributing tasks (`
 findings attached to that node from any task.
 
 ### Verifying the walkthrough
-Walk all 14 steps in **both** personas with the deep link, e.g.
+Walk all 15 steps in **both** personas with the deep link, e.g.
 `http://localhost:8787/function/assets/?tour=1&step=1&persona=executive` then **Next** through to **Finish**,
 switching persona on any step (copy swaps in place; the screen does not move). Run
 `scripts/demo/seed.sh` and restart `artex` first so the tasks are loaded.

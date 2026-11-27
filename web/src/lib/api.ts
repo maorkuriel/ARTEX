@@ -59,6 +59,11 @@ import type {
   AssetPostureDetail,
   GuardAuditEvent,
   PostureSummary,
+  AnchorProvenanceItem,
+  BlindSpot,
+  CoveragePolicy,
+  CoverageSummary,
+  CoverageValidationResult,
   InterceptRule,
   JudgeConfig,
   JudgeUsage,
@@ -1441,6 +1446,32 @@ export const api = {
     const qs = p.toString();
     return get<{ events: GuardAuditEvent[]; counts_30d: Record<string, number> }>(`/guards/audit${qs ? `?${qs}` : ""}`);
   },
+  coverageSummary: (company?: string, refresh = false) => {
+    const p = new URLSearchParams();
+    if (company) p.set("company", company);
+    if (refresh) p.set("refresh", "1");
+    const q = p.toString();
+    return get<CoverageSummary>(`/coverage/summary${q ? `?${q}` : ""}`);
+  },
+  coverageBlindSpots: (q: { reason?: string; criticality?: string; owner?: string; company?: string } = {}) => {
+    const p = new URLSearchParams();
+    for (const [k, v] of Object.entries(q)) if (v) p.set(k, v);
+    const qs = p.toString();
+    return get<{ blind_spots: BlindSpot[]; total: number }>(`/coverage/blind-spots${qs ? `?${qs}` : ""}`).then((r) => ({
+      ...r,
+      blind_spots: arr(r.blind_spots),
+    }));
+  },
+  assetAnchors: (id: number) =>
+    get<{ asset_id: number; coverage: BlindSpot; anchors: AnchorProvenanceItem[] }>(`/assets/${id}/anchors`),
+  coveragePolicies: () =>
+    get<{ policies: CoveragePolicy[]; default_cadence_days: Record<string, number> }>("/coverage/policies"),
+  createCoveragePolicy: (p: Omit<CoveragePolicy, "id" | "created_at">) => post<CoveragePolicy>("/coverage/policies", p),
+  deleteCoveragePolicy: (id: number) => del<{ deleted: number }>(`/coverage/policies/${id}`),
+  validateBlindSpots: (assetIds: number[]) =>
+    post<{ results: CoverageValidationResult[]; simulated: boolean }>("/coverage/validate-blind-spots", {
+      asset_ids: assetIds,
+    }),
   guardBudgets: () =>
     get<{ budget: number; hosts: { task_id: string; host: string; requests: number; budget: number; blocked: boolean }[] }>(
       "/guards/budgets",

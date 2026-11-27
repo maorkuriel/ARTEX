@@ -869,6 +869,14 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("PATCH /api/assets/{id}/metadata", s.assetMetadata)
 	mux.HandleFunc("GET /api/guards/audit", s.guardAudit)
 	mux.HandleFunc("GET /api/guards/budgets", s.guardBudgets)
+	// coverage intelligence & blind-spot engine (additive)
+	mux.HandleFunc("GET /api/coverage/summary", s.coverageSummary)
+	mux.HandleFunc("GET /api/coverage/blind-spots", s.coverageBlindSpots)
+	mux.HandleFunc("GET /api/coverage/policies", s.coveragePolicies)
+	mux.HandleFunc("POST /api/coverage/policies", s.createCoveragePolicy)
+	mux.HandleFunc("DELETE /api/coverage/policies/{id}", s.deleteCoveragePolicy)
+	mux.HandleFunc("POST /api/coverage/validate-blind-spots", s.validateBlindSpots)
+	mux.HandleFunc("GET /api/assets/{id}/anchors", s.assetAnchors)
 
 	// company system
 	mux.HandleFunc("GET /api/companies", s.listCompanies)

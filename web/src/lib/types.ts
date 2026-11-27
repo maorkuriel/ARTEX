@@ -266,6 +266,12 @@ export interface Asset {
   posture_score?: number;
   last_validated_at?: string;
   validation_coverage_pct?: number;
+  coverage_state?: CoverageState;
+  blind_spot_reason?: BlindSpotReason | "";
+  anchor_count?: number;
+  intent_anchor_count?: number;
+  validation_cadence_days?: number;
+  next_validation_due_at?: string;
 }
 
 export interface IntentAsset {
@@ -1967,4 +1973,107 @@ export interface AssetMetadataPatch {
   owner_team?: string;
   environment?: AssetEnvironment | "";
   validation_mode?: ValidationMode | "";
+}
+
+// ---- Coverage intelligence & blind spots ----
+export type CoverageState =
+  | "validated"
+  | "partially_validated"
+  | "unvalidated_blind_spot"
+  | "stale_validation"
+  | "out_of_scope";
+export type BlindSpotReason =
+  | "never_tested"
+  | "out_of_scope"
+  | "budget_exhausted"
+  | "blocked_by_auth_or_waf"
+  | "awaiting_guard_approval"
+  | "cadence_expired";
+export type CoverageTrigger = "on_new_endpoint_discovered" | "on_cadence_expired" | "on_high_priority_cve_ingested";
+
+export interface CoverageBucket {
+  key: string;
+  in_scope: number;
+  validated: number;
+  partially_validated: number;
+  blind_spots: number;
+  stale: number;
+  coverage_pct: number;
+}
+
+export interface CoverageSummary {
+  overall: CoverageBucket;
+  endpoints: CoverageBucket;
+  tier1: CoverageBucket;
+  by_criticality: CoverageBucket[];
+  by_owner_team: CoverageBucket[];
+  by_parent_domain: CoverageBucket[];
+  by_state: Partial<Record<CoverageState, number>>;
+  by_reason: Partial<Record<BlindSpotReason, number>>;
+  out_of_scope: number;
+  policies_active: number;
+  computed_at: string;
+}
+
+export interface BlindSpot {
+  asset_id: number;
+  type: string;
+  label: string;
+  parent_label?: string;
+  root_label?: string;
+  company_id?: number;
+  business_criticality: BusinessCriticality;
+  owner_team: string;
+  coverage_state: CoverageState;
+  blind_spot_reason: BlindSpotReason | "";
+  validation_mode: ValidationMode;
+  validation_cadence_days: number;
+  last_validated_at?: string;
+  next_validation_due_at?: string;
+  anchor_count: number;
+  intent_anchor_count: number;
+  recommended_action: "validate" | "review_approval" | "configure_auth" | "none";
+  recommended_action_label: string;
+  validatable: boolean;
+  needs_approval: boolean;
+  triggers_fired: CoverageTrigger[];
+  policy?: string;
+}
+
+export interface AnchorProvenanceItem {
+  node_id: number;
+  kind: "intent" | "fact" | "finding" | "hint" | "goal";
+  state: string;
+  summary: string;
+  counts_as_validation: boolean;
+  exploration_id: number;
+  task_id?: number;
+  task_name?: string;
+  created_at: string;
+  completed_at?: string;
+}
+
+export interface CoveragePolicy {
+  id: number;
+  name: string;
+  business_criticality?: BusinessCriticality | "";
+  scope_pattern: string;
+  cadence_days: number;
+  triggers: CoverageTrigger[];
+  validation_mode: ValidationMode;
+  enabled: boolean;
+  created_at?: string;
+}
+
+export interface CoverageValidationResult {
+  id: number;
+  asset_id: number;
+  label?: string;
+  status: "rejected" | "held_for_approval" | "denied" | "queued" | "completed";
+  validation_mode: ValidationMode;
+  simulated: boolean;
+  reason: string;
+  pending_id?: number;
+  node_id?: number;
+  task_draft?: { name: string; description: string; goal: string };
 }

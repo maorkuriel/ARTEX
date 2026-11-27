@@ -87,7 +87,7 @@ banner with its pillar, the one question it answers, and where it sits in the op
 |-------------|---------|---------|------------------------|
 | **Posture & Focus** | Focus Queue (`/focus`, the landing page), Overview Dashboard | *Where do I need to focus right now?* | Overall posture score, Tier-1 exposures, validated coverage, blind spots, pending guard approvals, and the ranked "Where to focus now" queue |
 | **Discovered Assets** | Inventory & Asset Graph, Discovery Sources | *What exists in our environment?* | The de-duplicated `root_domain → subdomain → ip → service → app → endpoint` hierarchy, provenance and per-asset posture snapshot |
-| **Coverage Status** | Test Coverage (`/coverage`) | *What has been tested, and what has not?* | Tested vs. untested assets per engagement (from `exploration_anchors`), by asset type, plus open coverage gaps |
+| **Coverage Status** | Coverage Intelligence (`/coverage`) | *What has been tested, and what has not?* | Anchor-proven coverage by tier, owner and parent domain; every blind spot with its root cause, cadence policies, guardrailed **Validate safely**, and per-engagement coverage maps |
 | **Risk Exposure** | Findings & Remediation, HTTP Evidence | *What is actually exposed, and can we prove it?* | Attack paths, confirmed findings, HTTP evidence receipts, mitigation and remediation guidance, and targeted retests |
 | **Scope & Guardrails** | Scope & Interception Rules, Asset Blocklist, Approvals, Guard Audit Trail | *What may ARTEX touch, and who signs off?* | Allow/deny/ask rules, validation modes, the asset blocklist with a rule tester, budgets, the human approval queue and the append-only guard audit trail |
 
@@ -120,9 +120,9 @@ approvals. Below it, **Where to focus now** ranks the work in four groups:
 3. **Held guard approvals** waiting for human sign-off.
 4. **Fixes awaiting verification**, with a one-click **Launch targeted retest**.
 
-| Posture & Focus | Test Coverage (Coverage Status) | Mitigation & remediation on a finding (Risk Exposure) |
-|---|---|---|
-| ![Posture & Focus: KPI strip and the four-group Where to focus now queue](screenshots/vmdr/vmdr-focus-queue.png) | ![Test Coverage: tested vs. untested per engagement, by asset type, and high-criticality blind spots](screenshots/vmdr/vmdr-coverage.png) | ![Mitigate now, Remediate and Verify guidance with the affected asset's tier, owner and posture](screenshots/vmdr/vmdr-remediation.png) |
+| Posture & Focus | Mitigation & remediation on a finding (Risk Exposure) |
+|---|---|
+| ![Posture & Focus: KPI strip and the four-group Where to focus now queue](screenshots/vmdr/vmdr-focus-queue.png) | ![Mitigate now, Remediate and Verify guidance with the affected asset's tier, owner and posture](screenshots/vmdr/vmdr-remediation.png) |
 
 ### Asset-centric posture model
 
@@ -160,6 +160,66 @@ Tier 1, 1.0 for Tier 2 and 0.75 for Tier 3. An asset that was never validated is
 
 All existing `/api/...` routes are unchanged. The new columns are additive with safe defaults
 (migration `0015`), and `GET /api/assets` simply returns the extra fields.
+
+### Coverage intelligence & blind-spot engine
+
+`exploration_anchors(node_id, asset_id)` are ARTEX's proof of testing. The coverage engine
+(`db.ComputeCoverageIntelligence` / `ClassifyAssetBlindSpots`) turns them into a per-asset
+coverage state and explains every gap. Unlike a black-box scan, it shows which assets were
+actively validated, and why the rest were not.
+
+- **Validation anchors.** Only confirmed facts, confirmed findings and completed intents count
+  as validation. Hints and runs that stopped early are recorded in `anchor_count`, but they
+  are not proof.
+- **`coverage_state`:**
+  - `validated`
+  - `partially_validated`: some of the subtree is validated.
+  - `unvalidated_blind_spot`
+  - `stale_validation`: validated, but older than its cadence.
+  - `out_of_scope`
+- **`blind_spot_reason`** comes from real evidence, in this priority order:
+
+| Reason | Evidence |
+|--------|----------|
+| `out_of_scope` | Asset blocklist rule, or an enabled deny rule naming the host |
+| `awaiting_guard_approval` | A pending approval whose request targets the asset (approvals gate a host) |
+| `blocked_by_auth_or_waf` | 401/403/429 evidence receipts, or coverage-ledger follow-ups citing auth/WAF, for that exact URL |
+| `budget_exhausted` | An intent anchored to the asset or an ancestor ended `exhausted` |
+| `cadence_expired` | Validated, but `last_validated + validation_cadence_days` has passed |
+| `never_tested` | No validation anchors and no blocking condition |
+
+- **Cadence policies.** Defaults are Tier 1 every 7 days, Tier 2 every 14 and Tier 3 every 30.
+  `coverage_policies` override this per tier and/or domain suffix, and also set the enforced
+  validation mode and the triggers:
+  - `on_new_endpoint_discovered`
+  - `on_cadence_expired`
+  - `on_high_priority_cve_ingested`: stored now; there is no CVE feed to evaluate it against yet.
+  - Per-asset fields: `validation_cadence_days` and `next_validation_due_at`.
+- **Guardrailed validation** (`POST /api/coverage/validate-blind-spots`). Selected blind spots go
+  through the three guardrail layers, and nothing bypasses them:
+  - Out-of-scope assets are rejected.
+  - Validation runs in the asset's enforced mode (read-only for production and Tier 1).
+  - Tier-1 assets are held in the regular approval queue and run only after approval.
+  - Every decision is written to the guard audit trail.
+  - With `coverage_simulated_validation` on (demo/local mode), an allowed validation runs
+    deterministically. It records anchored intent and fact nodes, and coverage and posture
+    recompute live. Otherwise the UI opens a prefilled, budget-bounded validation task to
+    confirm.
+
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /api/coverage/summary` | In-scope, endpoint and Tier-1 coverage %; buckets by criticality, owner team and parent domain; counts by state and reason |
+| `GET /api/coverage/blind-spots` | Prioritized blind spots (`?reason=&criticality=&owner=&company=`) with the recommended next action and fired triggers |
+| `GET /api/assets/{id}/anchors` | Reverse-anchor provenance: every intent, fact, finding and hint on the asset, with timestamps and task lineage |
+| `GET/POST /api/coverage/policies`, `DELETE /api/coverage/policies/{id}` | Cadence, trigger and validation-mode policies |
+| `POST /api/coverage/validate-blind-spots` | Guardrailed validation of up to 50 selected assets |
+
+Migration `0016` adds the coverage columns to `assets` with safe defaults, plus the
+`coverage_policies` and `coverage_validation_requests` tables. No existing route changes.
+
+| Coverage Intelligence (Coverage Status) | Anchor provenance drawer |
+|---|---|
+| ![Coverage Intelligence: KPI strip, blind-spot reason pills and the prioritized blind-spot queue with Validate safely](screenshots/vmdr/vmdr-coverage.png) | ![Anchor provenance: coverage state, cadence policy, next due date and the timeline of anchored nodes](screenshots/vmdr/vmdr-anchor-provenance.png) |
 
 ### Three-layer guardrails
 
@@ -308,10 +368,11 @@ two audiences:
    The copy swaps in place without losing your position.
 4. The six chapters follow the use cases above: *Taming Asset Sprawl* (1), *Finding Real Attack
    Paths* (2), *Eliminating False Positives with Proof* (3), *Spotting Testing Blind Spots* (4),
-   *Safe Testing with Guardrails* (5) and *Proving Fixes Fast* (6), 14 steps in total. Each card
+   *Safe Testing with Guardrails* (5) and *Proving Fixes Fast* (6), 15 steps in total. Each card
    names the menu pillar its screen lives under, and the last chapter walks Mitigate → Remediate →
    Verify on a real finding before returning to Posture & Focus. Use Case 1 ends on the asset
-   posture drawer (criticality, owner, live posture) and Use Case 5 on the Guard Audit Trail.
+   posture drawer (criticality, owner, live posture), Use Case 4 on blind-spot root causes in
+   Coverage Intelligence, and Use Case 5 on the Guard Audit Trail.
 5. Each step shows **The Pain Point**, **What You're Looking At**, **How ARTEX Helps** (with a
    **Try This** action) and **Value Shipped**. Use **Back / Next**, the use-case switcher to jump
    between the six chapters, **Reset Demo** to return to Use Case 1, Step 1, and **Exit Tour**

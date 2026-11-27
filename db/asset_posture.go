@@ -303,7 +303,8 @@ func (d *DB) loadPostureSnapshot(ctx context.Context) (*postureSnapshot, error) 
 
 	// exploration_anchors: tested assets and when they were last exercised.
 	arows, err := d.QueryContext(ctx, `SELECT ea.asset_id, MAX(n.created_at)
-		FROM exploration_anchors ea JOIN exploration_nodes n ON n.id = ea.node_id GROUP BY ea.asset_id`)
+		FROM exploration_anchors ea JOIN exploration_nodes n ON n.id = ea.node_id
+		WHERE ((n.kind IN ('fact','finding') AND n.state = 'confirmed') OR (n.kind = 'intent' AND n.state = 'done')) GROUP BY ea.asset_id`)
 	if err != nil {
 		return nil, err
 	}
@@ -381,6 +382,18 @@ func (d *DB) loadPostureSnapshot(ctx context.Context) (*postureSnapshot, error) 
 	}
 	frows.Close()
 	if err := frows.Err(); err != nil {
+		return nil, err
+	}
+
+	// Validation only counts while it is inside the asset's cadence window: a stale
+	// validation (coverage_state stale_validation) is not proof of a clean asset today.
+	if cov, err := d.ComputeCoverageIntelligence(ctx, time.Now()); err == nil {
+		for id, f := range facts {
+			if r, ok := cov.Results[id]; ok && f.anchored && !r.FreshlyValidated {
+				f.anchored = false
+			}
+		}
+	} else {
 		return nil, err
 	}
 
@@ -651,7 +664,8 @@ func (d *DB) PostureSummary(ctx context.Context, companyID int64) (*PostureSumma
 	}
 
 	// Coverage = assets with their own anchor / all assets (not the subtree rollup).
-	cq := `SELECT COUNT(DISTINCT ea.asset_id) FROM exploration_anchors ea JOIN assets a ON a.id = ea.asset_id` + where
+	cq := `SELECT COUNT(DISTINCT ea.asset_id) FROM exploration_anchors ea JOIN assets a ON a.id = ea.asset_id
+		JOIN exploration_nodes n ON n.id = ea.node_id` + validationWhere(where)
 	if err := d.QueryRowContext(ctx, cq, args...).Scan(&s.ValidatedAssets); err != nil {
 		return nil, err
 	}
@@ -662,7 +676,8 @@ func (d *DB) PostureSummary(ctx context.Context, companyID int64) (*PostureSumma
 
 	// High-value blind spots: Tier-1/Tier-2 assets with no anchors of their own.
 	anchored := map[int64]bool{}
-	arows, err := d.QueryContext(ctx, `SELECT DISTINCT asset_id FROM exploration_anchors`)
+	arows, err := d.QueryContext(ctx, `SELECT DISTINCT ea.asset_id FROM exploration_anchors ea
+		JOIN exploration_nodes n ON n.id = ea.node_id WHERE ((n.kind IN ('fact','finding') AND n.state = 'confirmed') OR (n.kind = 'intent' AND n.state = 'done'))`)
 	if err != nil {
 		return nil, err
 	}
@@ -800,7 +815,8 @@ func (d *DB) GetAssetPosture(ctx context.Context, id int64) (*AssetPostureDetail
 		}
 		queue = append(queue, children[c]...)
 	}
-	if err := d.QueryRowContext(ctx, `SELECT COUNT(*) FROM exploration_anchors WHERE asset_id = $1`, id).Scan(&det.Anchors); err != nil {
+	if err := d.QueryRowContext(ctx, `SELECT COUNT(*) FROM exploration_anchors ea JOIN exploration_nodes n ON n.id = ea.node_id
+		WHERE ea.asset_id = $1 AND ((n.kind IN ('fact','finding') AND n.state = 'confirmed') OR (n.kind = 'intent' AND n.state = 'done'))`, id).Scan(&det.Anchors); err != nil {
 		return nil, err
 	}
 
@@ -946,4 +962,15 @@ func (d *DB) AssetGuardProfiles(ctx context.Context, hosts []string) ([]AssetGua
 		out = append(out, p)
 	}
 	return out, rows.Err()
+}
+
+// validationAnchorSQL restricts an anchors join (alias n) to proof of validation:
+// confirmed facts and findings, and completed intents (see IsValidationAnchor).
+const validationAnchorSQL = `((n.kind IN ('fact','finding') AND n.state = 'confirmed') OR (n.kind = 'intent' AND n.state = 'done'))`
+
+func validationWhere(where string) string {
+	if where == "" {
+		return " WHERE " + validationAnchorSQL
+	}
+	return where + " AND " + validationAnchorSQL
 }

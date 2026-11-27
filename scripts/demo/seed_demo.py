@@ -166,6 +166,8 @@ w("BEGIN;")
 w()
 w("-- ============ 0. Clean prior demo rows (FK-safe order) ============")
 w("DELETE FROM guard_audit_events WHERE id >= 9000;")
+w("DELETE FROM coverage_validation_requests WHERE asset_id >= 9000;")
+w("DELETE FROM coverage_policies WHERE id >= 9000;")
 w("DELETE FROM finding_traffic_bindings WHERE finding_id >= 9000;")
 w("DELETE FROM traffic_evidence_snapshots WHERE id LIKE 'demo-%';")
 w("DELETE FROM finding_retests WHERE id >= 9000;")
@@ -671,6 +673,31 @@ w(
         domain="'api.acme.demo.local'",
         ip="'198.51.100.14'",
         last_seen="'2026-11-22T10:09:00Z'",
+    )
+)
+w(
+    asset(
+        9214,
+        "endpoint",
+        [9006],
+        company=9003,
+        url="'https://api.acme.demo.local/api/v2/webhooks/replay'",
+        method="'POST'",
+        root_domain="'acme.demo.local'",
+        domain="'api.acme.demo.local'",
+        ip="'198.51.100.14'",
+        last_seen="'2026-11-24T08:30:00Z'",
+    )
+)
+w(
+    asset(
+        9215,
+        "subdomain",
+        [9005],
+        company=9003,
+        domain="'prod-db.acme.demo.local'",
+        root_domain="'acme.demo.local'",
+        last_seen="'2026-11-21T07:00:00Z'",
     )
 )
 w(
@@ -1333,6 +1360,23 @@ for nid, exp, summary, ts, assets in DEMO_LOCAL_FACTS:
     w(node(nid, exp, "fact", payload, 0, "confirmed", "worker", ts))
     for a in assets:
         w(anchor(nid, a))
+# An intent that ran out of budget while crawling the customer portal: anchored, but not proof of validation.
+w(node(9305, 9007, "intent", '{"summary":"Crawl portal.acme.demo.local and enumerate authenticated routes","stop_reason":"turn budget exhausted after 40 turns"}', 0, "exhausted", "planner", "2026-11-24T10:00:00Z", "2026-11-24T10:40:00Z"))
+w(anchor(9305, 9203))
+# Coverage freshness is relative to "now", so the demo stays deterministic on any day:
+# the Billing API facts are 2 days old (fresh), admin-staging's validation is 20 days old
+# (past its 14-day Tier-2 cadence → cadence_expired), the exhausted crawl is 3 days old.
+w("UPDATE exploration_nodes SET created_at = now() - interval '2 days', completed_at = NULL WHERE id IN (9301,9302,9303);")
+w("UPDATE exploration_nodes SET created_at = now() - interval '20 days' WHERE id = 9304;")
+w("UPDATE exploration_nodes SET created_at = now() - interval '3 days', completed_at = now() - interval '3 days' + interval '40 minutes' WHERE id = 9305;")
+w()
+
+w("-- ============ Coverage policies + demo-mode simulated validation ============")
+w("""INSERT INTO coverage_policies (id,name,business_criticality,scope_pattern,cadence_days,triggers,validation_mode,enabled) VALUES
+ (9001,'Crown jewels: weekly read-only validation','tier_1_crown_jewel','',7,ARRAY['on_new_endpoint_discovered','on_cadence_expired','on_high_priority_cve_ingested'],'read_only_validation',true),
+ (9002,'Business apps: fortnightly','tier_2_business','',14,ARRAY['on_cadence_expired'],'read_only_validation',true),
+ (9003,'Standard assets: monthly','tier_3_standard','',30,ARRAY['on_cadence_expired'],'read_only_validation',true);""")
+w("INSERT INTO settings (key,value) VALUES ('coverage_simulated_validation','true') ON CONFLICT (key) DO UPDATE SET value='true', updated_at=now();")
 w()
 
 w(
@@ -1398,6 +1442,13 @@ def cov(task, surface, risk, outcome, reason, worker="worker", intent="NULL"):
 
 
 COV = [
+    cov(
+        9007,
+        "https://portal.acme.demo.local/internal/export",
+        "access control",
+        "needs_follow_up",
+        "Every request returned HTTP 403 from the WAF (no valid session credentials); endpoint not exercised",
+    ),
     cov(
         9001,
         "www.acme.com/search",
@@ -1757,7 +1808,8 @@ w("""INSERT INTO intercept_pending (id,rule_id,task_id,agent_name,tool_name,tool
  (9002,NULL,'9002','worker','WebFetch','{"url":"https://api.acme.com/v1/orders?id=1002"}'::jsonb,'pending','Target approval required (target gate)','','', NULL,'api.acme.com:443','2026-11-14T02:40:00Z'),
  (9003,9002,'9003','worker','Bash','{"command":"sqlmap -u https://shop.acme.com/api/import --batch"}'::jsonb,'allowed','Operator approved for shop.acme.com','human','human','2026-11-13T15:05:00Z',NULL,'2026-11-13T15:04:00Z'),
  (9004,9003,'9003','worker','Bash','{"command":"rm -rf /opt/app/logs"}'::jsonb,'denied','Blocked destructive command','rule','rule','2026-11-13T16:20:00Z',NULL,'2026-11-13T16:19:00Z'),
- (9005,9001,'9003','worker','Bash','{"command":"nuclei -silent -u https://shop.acme.com"}'::jsonb,'allowed','Auto-approved: passive recon','rule','rule','2026-11-13T14:21:00Z',NULL,'2026-11-13T14:20:00Z');""")
+ (9005,9001,'9003','worker','Bash','{"command":"nuclei -silent -u https://shop.acme.com"}'::jsonb,'allowed','Auto-approved: passive recon','rule','rule','2026-11-13T14:21:00Z',NULL,'2026-11-13T14:20:00Z'),
+ (9006,NULL,'9006','worker','WebFetch','{"url":"https://api.acme.demo.local/api/v2/webhooks/replay","method":"OPTIONS"}'::jsonb,'pending','api.acme.demo.local is a Tier-1 crown-jewel asset: a human must approve validation against it','','', NULL,NULL,'2026-11-24T08:31:00Z');""")
 w()
 
 w(
@@ -1947,6 +1999,8 @@ ASSET_CONTEXT = {
     9211: ("tier_1_crown_jewel", "Core Identity", "production", None),
     9212: ("tier_2_business", "Customer Portal", "production", None),
     9213: ("tier_3_standard", "Mobile", "development", None),
+    9214: ("tier_1_crown_jewel", "Platform Billing", "production", None),
+    9215: ("tier_1_crown_jewel", "Data Platform", "production", None),
 }
 for aid, (crit, team, env, mode) in ASSET_CONTEXT.items():
     m = f"'{mode}'" if mode else "NULL"
@@ -2008,6 +2062,8 @@ for tbl in [
     "conversations",
     "company_scope",
     "guard_audit_events",
+    "coverage_policies",
+    "coverage_validation_requests",
     "task_scope",
     "coverage_ledger",
     "task_constraints",

@@ -339,6 +339,44 @@ export const ARTICLES: DocArticle[] = [
     links: [{ label: "Tasks → Exploration graph tab", href: "/function/tasks" }],
   },
   {
+    id: "coverage-intelligence",
+    pillar: "how-it-works",
+    title: "Coverage intelligence: proof of testing, and why gaps exist",
+    technicalName: "Anchor-based coverage telemetry & blind-spot engine",
+    tagline:
+      "Every validated asset is backed by exploration anchors; every gap gets a concrete reason and a safe way to close it.",
+    useCase: 4,
+    blocks: [
+      {
+        kind: "p",
+        text: "When an agent tests something, the step is anchored to the asset it touched. ARTEX counts an asset as validated only when a confirmed fact, a confirmed finding or a completed test step is anchored to it, and only for as long as its validation cadence allows. Hints and runs that stopped early are recorded, but they are not proof.",
+      },
+      {
+        kind: "list",
+        items: [
+          "Never tested: discovered, but nothing has ever exercised it.",
+          "Awaiting approval: a pending guard approval is holding the test (common for Tier-1 crown jewels).",
+          "Blocked by auth or WAF: evidence shows 401, 403 or 429 responses without valid credentials.",
+          "Budget exhausted: the run that would have reached it stopped on its turn, token or request budget.",
+          "Cadence expired: it was validated, but longer ago than its policy allows (Tier 1 weekly, Tier 2 every 14 days, Tier 3 monthly by default).",
+          "Out of scope: excluded on purpose by a scope rule or the asset blocklist, and never tested.",
+        ],
+      },
+      {
+        kind: "example",
+        text: "The webhooks replay endpoint is Tier 1 and waits for approval; the customer-portal export is blocked by a WAF; admin-staging was validated 20 days ago against a 14-day cadence; prod-db is out of scope. Each shows a different badge and a different next step.",
+      },
+      {
+        kind: "p",
+        text: "Validate safely queues a scoped, budget-bounded check through the same three guardrail layers as every agent action: out-of-scope assets are refused, the asset's read-only policy applies, and Tier-1 assets wait for a human. In demo mode the check runs at once and the asset leaves the queue; otherwise a prefilled task opens for you to confirm.",
+      },
+    ],
+    links: [
+      { label: "Coverage Intelligence", href: "/coverage" },
+      { label: "Discovered assets", href: "/function/assets" },
+    ],
+  },
+  {
     id: "proof",
     pillar: "how-it-works",
     title: "Camera-like proof",
@@ -499,6 +537,25 @@ export interface GlossaryTerm {
 
 export const GLOSSARY: GlossaryTerm[] = [
   {
+    term: "Blind-spot reason",
+    definition:
+      "Why an asset is not validated: never tested, awaiting approval, blocked by auth/WAF, budget exhausted, cadence expired or out of scope.",
+    articleId: "coverage-intelligence",
+  },
+  {
+    term: "Validation cadence",
+    definition:
+      "How often an asset must be re-validated before its validation counts as stale. Set by coverage policies per tier or scope.",
+    example: "Tier 1 every 7 days, Tier 2 every 14, Tier 3 every 30.",
+    articleId: "coverage-intelligence",
+  },
+  {
+    term: "Anchor provenance",
+    definition:
+      "The timeline of every test step, fact and finding anchored to an asset: the proof of testing behind its coverage state.",
+    articleId: "coverage-intelligence",
+  },
+  {
     term: "Business criticality",
     definition:
       "How much an asset matters: Tier 1 (crown jewel), Tier 2 (business) or Tier 3 (standard). It weights the posture score and turns on extra guardrails for Tier 1.",
@@ -658,7 +715,8 @@ export function helpTopicFor(pathname: string, tab?: string | null): HelpTopic {
   }
   if (p.startsWith("/focus") || p.startsWith("/dashboard"))
     return { articleId: "focus-loop", useCase: 6, screen: "Focus Queue" };
-  if (p.startsWith("/coverage")) return { articleId: "vmdr-pillars", useCase: 4, screen: "Test Coverage" };
+  if (p.startsWith("/coverage"))
+    return { articleId: "coverage-intelligence", useCase: 4, screen: "Coverage Intelligence" };
   if (p.startsWith("/function/assets")) return { articleId: "posture-model", useCase: 1, screen: "Assets" };
   if (p.startsWith("/function/sync")) return { articleId: "asset-map", useCase: 1, screen: "Discovery sources" };
   if (p.startsWith("/function/findings/detail"))

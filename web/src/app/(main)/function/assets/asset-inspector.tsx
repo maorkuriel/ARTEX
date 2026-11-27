@@ -4,6 +4,7 @@ import * as React from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { AnchorProvenance } from "@/components/vmdr/anchor-provenance";
 import { AssetPosturePanel } from "@/components/vmdr/asset-posture-panel";
 import { t } from "@/i18n";
 import { api } from "@/lib/api";
@@ -115,6 +116,7 @@ export function AssetInspector({ asset, onClose }: { asset: Asset | null; onClos
 
         <div className="flex flex-col gap-4 p-4">
           <AssetPosturePanel assetId={asset.id} />
+          <AnchorProvenance assetId={asset.id} />
           {/* Deduplication key */}
           <section data-tour="asset-dedup-key" className="rounded-lg border border-primary/20 bg-primary/5 p-3">
             <p className="font-medium text-[12px] text-primary uppercase tracking-wide">{t("Deduplication key")}</p>

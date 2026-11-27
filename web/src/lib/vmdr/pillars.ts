@@ -45,10 +45,10 @@ export const VMDR_PILLARS: VmdrPillar[] = [
   {
     id: "coverage",
     title: "Coverage Status",
-    artifacts: "Test Coverage · Anchors",
+    artifacts: "Coverage Intelligence · Blind Spots",
     question: "What has been tested, and what has not?",
     description:
-      "Only testing reach: tested vs. untested assets and the gaps between them. An untested asset is a blind spot, never a clean result.",
+      "Only testing reach: which assets exploration anchors prove were validated, which are blind spots and why (never tested, awaiting approval, blocked by auth/WAF, budget exhausted, cadence expired, out of scope).",
     href: "/coverage",
     routes: ["/coverage"],
   },
