@@ -12,7 +12,11 @@ see **[DEMO_RUNBOOK.md](DEMO_RUNBOOK.md)**. This file documents the walkthrough 
 
 ## Launching it
 
-- Click **Guided Walkthrough** (compass icon) in the top header.
+- Click **Guided Walkthrough** (compass icon) in the top header, or **Learn → Guided Walkthrough**
+  in the menu.
+- Each card carries a **Menu: <pillar>** chip naming the VMDR menu pillar its screen lives under
+  (Posture & Focus, Discovered Assets, Coverage Status, Risk Exposure, Scope & Guardrails), so the
+  tour also teaches the navigation.
 - A **WalkthroughCard** docks bottom-right (it flips to the left when the spotlight is on a
   right-side panel, e.g. the node inspector) and the tour navigates to each step's screen.
 - Shareable deep link: `?tour=1&step=<n>&persona=<executive|analyst>` auto-starts the tour at
@@ -28,6 +32,14 @@ see **[DEMO_RUNBOOK.md](DEMO_RUNBOOK.md)**. This file documents the walkthrough 
 | **Reset Demo** | Restart at Use Case 1, Step 1 (keeps the selected persona). |
 | **Exit Tour** (or ✕ / Esc) | Close the walkthrough (progress is kept in `localStorage`). |
 
+### VMDR menu the tour follows
+The left menu is grouped by pillar: **Posture & Focus** (Focus Queue — the landing page — and the
+Overview Dashboard), **Discovered Assets** (Inventory & Asset Graph, Discovery Sources),
+**Coverage Status** (Test Coverage), **Risk Exposure** (Findings & Remediation, HTTP Evidence) and
+**Scope & Guardrails** (Scope & Interception Rules, Asset Blocklist, Approvals), followed by
+Operations, System and Learn. See the README's
+[VMDR navigation and workflow](README.md#vmdr-navigation-and-workflow) section.
+
 ### Four plain-English sections per step
 1. **The Pain Point** — what frustrates security/engineering teams today, in plain words.
 2. **What You're Looking At** — a concrete guide to the exact numbers/rows/nodes on screen.
@@ -36,7 +48,7 @@ see **[DEMO_RUNBOOK.md](DEMO_RUNBOOK.md)**. This file documents the walkthrough 
 
 ---
 
-## The six VMDR use cases (10 steps)
+## The six VMDR use cases (12 steps)
 
 Every step lands on seeded, populated data (on first load and after **Reset Demo**). IDs below
 are the deterministic seed rows the step deep-links to.
@@ -50,9 +62,11 @@ are the deterministic seed rows the step deep-links to.
 | 2.1 | **Finding Real Attack Paths** | Task `9001` → Exploration graph | Start → intent → fact → finding → Goal chain (2 goals, 3 findings) joined by 2 `proves` edges. |
 | 3.1 | **Eliminating False Positives with Proof** | Finding `9005` detail | Critical Fastjson RCE, *Verified L4*, Linked traffic `POST /api/import → 200` (View message), Exploration-graph tab = worker trace. |
 | 4.1 | **Spotting Testing Blind Spots** | Task `9001` → Asset coverage | *In scope 13 · Tested 3*: tested assets are highlighted in color, untested ones are gray. |
-| 5.1 | **Safe Testing with Guardrails** | System → Interception rules | Top rule (priority 120) **blocks `prod-db.acme.demo.local`**; deny destructive shell; allow nuclei; ask before sqlmap. |
+| 5.1 | **Safe Testing with Guardrails** | Scope & Guardrails → Scope & Interception Rules | Top rule (priority 120) **blocks `prod-db.acme.demo.local`**; deny destructive shell; allow nuclei; ask before sqlmap. |
 | 5.2 | | Task `9001` → Interception approval | A pending `sqlmap` request waiting for a human **Approve / Deny** (120 s timeout → deny). |
-| 6.1 | **Proving Fixes Fast** | Task `9001` → Retests | Finding 9006 (default creds): retest `#9002` *Still reproducible* (200 OK) → retest `#9003` *Fixed* (403 Forbidden); **Start retest** runs a new one. |
+| 6.1 | **Proving Fixes Fast** | Risk Exposure → Finding `9006` detail | *Mitigation & remediation* panel: **1 · Mitigate now** (restrict the console to the VPN, lockout), **2 · Remediate** (rotate the password, MFA, deploy-time defaults check), **3 · Verify** (expect 401/403) + **Launch retest**. |
+| 6.2 | | Task `9001` → Retests | Finding 9006 (default creds): retest `#9002` *Still reproducible* (200 OK) → retest `#9003` *Fixed* (403 Forbidden); **Start retest** runs a new one. |
+| 6.3 | | Posture & Focus → Focus Queue | Posture grade with its factors and the ranked next actions (open findings, the pending approval, unverified fixes, coverage gaps), each tagged with its pillar. |
 
 README-ready screenshots of each use case (1600×1000, light mode) live in
 [`screenshots/vmdr/`](screenshots/vmdr/) and are embedded in the
@@ -86,7 +100,7 @@ indexes in `db/schema.sql`), parent → child lineage, the contributing tasks (`
 findings attached to that node from any task.
 
 ### Verifying the walkthrough
-Walk all 10 steps in **both** personas with the deep link, e.g.
+Walk all 12 steps in **both** personas with the deep link, e.g.
 `http://localhost:8787/function/assets/?tour=1&step=1&persona=executive` then **Next** through to **Finish**,
 switching persona on any step (copy swaps in place; the screen does not move). Run
 `scripts/demo/seed.sh` and restart `artex` first so the tasks are loaded.

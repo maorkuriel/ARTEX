@@ -9,6 +9,7 @@ import { X } from "lucide-react";
 import { DocsLink, HelpButton } from "@/components/docs/help-drawer";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { PillarBanner } from "@/components/vmdr/pillar-banner";
 import { WalkthroughLauncher } from "@/components/walkthrough/walkthrough";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { t } from "@/i18n";
@@ -66,7 +67,7 @@ export function MainContent({ children }: { children: ReactNode }) {
       <div
         role="alert"
         title={degraded}
-        className="flex shrink-0 items-center justify-center gap-2 border-b border-destructive/40 bg-destructive/10 px-4 py-1 text-destructive text-xs"
+        className="flex shrink-0 items-center justify-center gap-2 border-destructive/40 border-b bg-destructive/10 px-4 py-1 text-destructive text-xs"
       >
         {t(
           "Agent isolation is degraded: agent shells, tools and file tools run with the server's identity and may read its keys, config and database credentials.",
@@ -139,6 +140,7 @@ export function MainContent({ children }: { children: ReactNode }) {
         </div>
       </header>
       <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden p-4 has-data-[content-padding=false]:p-0 md:p-6 md:has-data-[content-padding=false]:p-0 2xl:px-8 2xl:has-data-[content-padding=false]:p-0">
+        <PillarBanner />
         {children}
       </div>
     </>

@@ -9,8 +9,17 @@ import { ChevronLeft, ChevronRight, Compass, RotateCcw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { t } from "@/i18n";
 import { cn } from "@/lib/utils";
+import { pillarById } from "@/lib/vmdr/pillars";
 import { useWalkthrough } from "@/lib/walkthrough/store";
-import { PERSONA_LABELS, type Persona, STEPS, stepNumber, stepUseCase, USE_CASES } from "@/lib/walkthrough/usecases";
+import {
+  PERSONA_LABELS,
+  type Persona,
+  pillarOfStep,
+  STEPS,
+  stepNumber,
+  stepUseCase,
+  USE_CASES,
+} from "@/lib/walkthrough/usecases";
 
 const STORAGE_KEY = "artex-walkthrough";
 
@@ -227,9 +236,9 @@ export function Walkthrough() {
         aria-label={t("Guided Walkthrough")}
         className={cn(
           "pointer-events-auto fixed z-[95] flex max-h-[85vh] flex-col gap-3 overflow-y-auto rounded-xl border bg-background p-4 shadow-2xl",
-          "right-4 bottom-4 left-4 w-auto sm:w-[420px] 2xl:w-[460px] sm:max-w-[calc(100vw-2rem)]",
+          "right-4 bottom-4 left-4 w-auto sm:w-[420px] sm:max-w-[calc(100vw-2rem)] 2xl:w-[460px]",
           // Flip to the opposite side of the spotlight so a right-side drawer stays visible.
-          cardOnLeft ? "sm:right-auto sm:left-4" : "sm:left-auto sm:right-4",
+          cardOnLeft ? "sm:right-auto sm:left-4" : "sm:right-4 sm:left-auto",
         )}
       >
         {/* Header: use-case switcher + persona + exit */}
@@ -264,7 +273,15 @@ export function Walkthrough() {
           <PersonaToggle persona={persona} onChange={setPersona} />
         </div>
 
-        <h2 className="font-semibold text-sm leading-tight">{step.headline}</h2>
+        <div className="flex flex-col gap-1">
+          <span
+            className="self-start rounded-md bg-primary/10 px-1.5 py-0.5 font-medium text-[11px] text-primary"
+            title={pillarById(pillarOfStep(step)).question}
+          >
+            {t("Menu: {pillar}", { pillar: t(pillarById(pillarOfStep(step)).title) })}
+          </span>
+          <h2 className="font-semibold text-sm leading-tight">{step.headline}</h2>
+        </div>
 
         {/* Four plain-English, labeled sections */}
         <div className="flex flex-col gap-2.5">

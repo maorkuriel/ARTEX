@@ -15,8 +15,9 @@ export const PILLARS: Pillar[] = [
   {
     id: "overview",
     number: 1,
-    title: "What is ARTEX?",
-    summary: "The one-minute version: what ARTEX does and how it differs from a vulnerability scanner.",
+    title: "What is ARTEX & how it's organized",
+    summary:
+      "The one-minute version, the five VMDR pillars in the menu, and the Focus → Mitigate/Remediate → Verify loop.",
   },
   {
     id: "how-it-works",
@@ -103,6 +104,107 @@ export const ARTICLES: DocArticle[] = [
       { label: "Tasks", href: "/function/tasks" },
       { label: "Findings", href: "/function/findings" },
     ],
+  },
+  {
+    id: "vmdr-pillars",
+    pillar: "overview",
+    title: "The five VMDR pillars in the menu",
+    tagline:
+      "Assets, coverage, exposure, posture and guardrails are different questions, so they live in different places.",
+    technicalName: "VMDR information architecture",
+    blocks: [
+      {
+        kind: "p",
+        text: "The most common mistake in vulnerability management is mixing up five different things: what you own, what you tested, what is actually exploitable, how healthy you are overall, and what you are allowed to touch. The ARTEX menu keeps them apart, and every screen shows a small banner naming its pillar and the one question it answers.",
+      },
+      {
+        kind: "list",
+        items: [
+          "Posture & Focus (Focus Queue, Overview Dashboard) — “Where do I need to focus right now?” Overall asset security posture and a ranked list of next actions.",
+          "Discovered Assets (Inventory & Asset Graph, Discovery Sources) — “What exists?” Each domain, IP, service, app and endpoint, counted once. Says nothing about whether it was tested.",
+          "Coverage Status (Test Coverage) — “What has been tested, and what has not?” Tested vs. untested assets per engagement. Untested is a blind spot, never a clean result.",
+          "Risk Exposure (Findings & Remediation, HTTP Evidence) — “What is actually exposed, and can we prove it?” Attack paths, confirmed findings with proof, mitigation and remediation steps, and retests.",
+          "Scope & Guardrails (Scope & Interception Rules, Asset Blocklist, Approvals) — “What may ARTEX touch, and who signs off?” Allow/deny rules, budgets and the human approval queue.",
+        ],
+      },
+      {
+        kind: "compare",
+        left: {
+          title: "Easy to confuse",
+          items: [
+            "“We have 400 assets and 3 findings, so we're in good shape.”",
+            "“No findings on this server” (because it was never tested).",
+            "“The scanner flagged it, so it's a risk.”",
+          ],
+        },
+        right: {
+          title: "What ARTEX shows instead",
+          items: [
+            "Discovered Assets: 400 · Coverage Status: 38% tested · Risk Exposure: 3 proven.",
+            "The server is gray on the coverage map: untested, so unknown.",
+            "Only proven, evidence-backed issues count toward exposure and posture.",
+          ],
+        },
+      },
+      {
+        kind: "p",
+        text: "Operations (tasks, chat, tool runs, recordings, workspace) and System settings sit below the five pillars: they are how the work gets done, not what you report on.",
+      },
+    ],
+    links: [
+      { label: "Focus Queue", href: "/focus" },
+      { label: "Test Coverage", href: "/coverage" },
+    ],
+  },
+  {
+    id: "focus-loop",
+    pillar: "overview",
+    title: "Focus → Mitigate & remediate → Verify",
+    tagline: "A simple four-step loop that takes you from “what matters?” to a proven fix.",
+    technicalName: "VMDR operating loop",
+    blocks: [
+      {
+        kind: "steps",
+        items: [
+          "Scope & Discover — confirm what is in scope (Scope & Guardrails), then review the de-duplicated Discovered Assets and their baseline posture.",
+          "Check Coverage — open Test Coverage and find the gray, untested assets, so a blind spot is never mistaken for a clean bill of health.",
+          "Inspect Exposure — in Risk Exposure, review the attack paths, confirmed findings and the HTTP request and response that prove each one.",
+          "Mitigate, Remediate & Verify — on each finding, apply the temporary mitigation today, ship the permanent remediation, then click Launch retest to prove the fix holds.",
+        ],
+      },
+      {
+        kind: "compare",
+        left: {
+          title: "Mitigation (today, temporary)",
+          items: [
+            "Lowers the risk while the real fix is built.",
+            "Examples: WAF rule, IP allow-list, rate limit, disable a feature.",
+            "Does not remove the root cause.",
+          ],
+        },
+        right: {
+          title: "Remediation (permanent)",
+          items: [
+            "Removes the root cause in code, configuration or access.",
+            "Examples: parameterized queries, ownership checks, rotate credentials and add MFA.",
+            "Verified by a targeted retest of the original proof.",
+          ],
+        },
+      },
+      {
+        kind: "example",
+        text: "Admin console uses default credentials: mitigate by restricting the console to the VPN; remediate by rotating the password and requiring MFA; verify with a retest that now gets 403 Forbidden instead of 200 OK.",
+      },
+      {
+        kind: "p",
+        text: "The Focus Queue ranks this work for you: proven critical exposure first, then pending approvals, fixes awaiting verification and untested assets. Its posture grade lists the factors behind it, and is marked low-confidence when most assets are untested.",
+      },
+    ],
+    links: [
+      { label: "Focus Queue", href: "/focus" },
+      { label: "Findings", href: "/function/findings" },
+    ],
+    useCase: 6,
   },
   {
     id: "scanning-vs-validation",
@@ -339,6 +441,31 @@ export interface GlossaryTerm {
 
 export const GLOSSARY: GlossaryTerm[] = [
   {
+    term: "Coverage Status",
+    definition:
+      "How much of the in-scope estate has actually been tested. Untested assets are blind spots: unknown, not safe.",
+    example: "38 of 100 in-scope assets tested = 38% coverage, 62 blind spots.",
+    articleId: "vmdr-pillars",
+  },
+  {
+    term: "Risk Exposure",
+    definition: "Weaknesses that ARTEX proved are exploitable, with the request and response that show it.",
+    articleId: "vmdr-pillars",
+  },
+  {
+    term: "Asset Security Posture",
+    definition:
+      "An overall grade combining open proven exposure and coverage. It shows its factors and is marked low-confidence when most assets are untested.",
+    articleId: "focus-loop",
+  },
+  {
+    term: "Mitigation vs. remediation",
+    definition:
+      "Mitigation is a temporary control that lowers risk today; remediation is the permanent fix of the root cause. Both end with a retest.",
+    example: "Mitigate: block the route at the WAF. Remediate: upgrade the vulnerable library.",
+    articleId: "focus-loop",
+  },
+  {
     term: "Asset Graph",
     definition:
       "The single shared map of everything ARTEX knows about your environment: domains, servers, apps and URLs, each counted once.",
@@ -453,13 +580,18 @@ export function helpTopicFor(pathname: string, tab?: string | null): HelpTopic {
         return { articleId: "step-by-step", useCase: 2, screen: "Task" };
     }
   }
+  if (p.startsWith("/focus") || p.startsWith("/dashboard"))
+    return { articleId: "focus-loop", useCase: 6, screen: "Focus Queue" };
+  if (p.startsWith("/coverage")) return { articleId: "vmdr-pillars", useCase: 4, screen: "Test Coverage" };
   if (p.startsWith("/function/assets") || p.startsWith("/function/sync"))
     return { articleId: "asset-map", useCase: 1, screen: "Assets" };
+  if (p.startsWith("/function/findings/detail"))
+    return { articleId: "focus-loop", useCase: 6, screen: "Finding remediation" };
   if (p.startsWith("/function/findings")) return { articleId: "proof", useCase: 3, screen: "Findings" };
   if (p.startsWith("/function/traffic")) return { articleId: "proof", useCase: 3, screen: "Traffic" };
   if (p.startsWith("/system/intercept")) return { articleId: "safety", useCase: 5, screen: "Interception" };
   if (p.startsWith("/function/tasks")) return { articleId: "step-by-step", useCase: 2, screen: "Tasks" };
-  return { articleId: "what-is-artex", screen: "" };
+  return { articleId: "vmdr-pillars", screen: "" };
 }
 
 export const articleById = (id: string) => ARTICLES.find((a) => a.id === id);

@@ -276,8 +276,9 @@ presenter can toggle perspective mid-tour and get tailored narratives for every 
   2. Coverage & Blind-Spot Triage → task **Asset coverage** tab
   3. Multi-Step Attack Paths → task **Exploration graph** tab
   4. Proof-Backed Triage → Findings (open a finding → Linked traffic → View message)
-  5. Guardrailed Execution → **System → Interception** rules
-  6. Closing the Remediation Loop → task **Retests** tab
+  5. Guardrailed Execution → **Scope & Guardrails → Scope & Interception Rules**
+  6. Closing the Remediation Loop → finding **Mitigation & remediation** panel → task **Retests**
+     tab → **Posture & Focus → Focus Queue**
 - **Navigation & reset:** Prev/Next, chapter dots (jump to any chapter), and **Reset** (restart
   at chapter 1, keeps the chosen persona). **Esc** or the ✕ closes it.
 - **Persistence:** the chosen persona and chapter are saved to `localStorage`; a shareable deep

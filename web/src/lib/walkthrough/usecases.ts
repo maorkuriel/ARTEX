@@ -14,6 +14,8 @@
 // switcher jumps to a use case's first step. "Step X of Y" is computed within the
 // current use case.
 
+import type { VmdrPillarId } from "@/lib/vmdr/pillars";
+
 export type Persona = "executive" | "analyst";
 
 export interface StepContent {
@@ -27,6 +29,8 @@ export interface StepContent {
 export interface Step {
   id: string;
   useCase: number; // 1..6
+  /** VMDR menu pillar this screen lives under; defaults per use case (see pillarOfStep). */
+  pillar?: VmdrPillarId;
   headline: string;
   path: string;
   anchor: string;
@@ -44,6 +48,8 @@ export interface UseCase {
 // Seeded demo handles the walkthrough deep-links to.
 export const DEMO_TASK_ID = "9001"; // Acme Web engagement (acme.com) — populated graph/findings/retests
 export const DEMO_ENDPOINT_ASSET_ID = 9210;
+/** Default-credentials finding with a reproduced → fixed retest history (Use Case 6). */
+export const DEMO_FIXED_FINDING_ID = 9006;
 /** Critical finding with a bound request/response evidence snapshot (Use Case 3). */
 export const DEMO_PROOF_FINDING_ID = 9005; // canonical /api/v2/invoices/{id} on acme.demo.local
 
@@ -319,7 +325,37 @@ export const STEPS: Step[] = [
     },
   },
 
-  // ═══════════════ Use Case 6 — Proving Fixes Fast ═══════════════
+  // ═══════════════ Use Case 6 — Proving Fixes Fast (mitigate → remediate → verify) ═══════════════
+  {
+    id: "uc6-remediate",
+    useCase: 6,
+    pillar: "exposure",
+    headline: "Mitigate today, remediate for good",
+    path: `/function/findings/detail/?id=${DEMO_FIXED_FINDING_ID}`,
+    anchor: "finding-remediation",
+    executive: {
+      painPoint:
+        "A finding lands with no clear next step, so it bounces between security and engineering while the risk stays open.",
+      lookingAt:
+        "The Mitigation & remediation panel for “Admin console uses default credentials”: what to do today, the permanent fix, and what the retest must show.",
+      howArtex:
+        "Every confirmed finding carries two kinds of action: a temporary mitigation that lowers the risk now, and the remediation that removes the root cause.",
+      tryThis:
+        "Read “1 · Mitigate now” (restrict the console to the VPN), then “2 · Remediate” (rotate the password, require MFA).",
+      valueShipped: "Risk drops the same day, and the owning team knows exactly what “fixed” means.",
+    },
+    analyst: {
+      painPoint:
+        "Generic scanner advice (“apply vendor patch”) gives engineers nothing concrete to ship or to test against.",
+      lookingAt:
+        "Class-specific guidance for weak/default credentials: an IP allow-list and lockout as mitigation, credential rotation, MFA and a deploy-time defaults check as remediation.",
+      howArtex:
+        "Guidance is matched to the vulnerability class, and the Verify step states the expected post-fix response (401/403 instead of 200 OK).",
+      tryThis:
+        "Note the expected result in “3 · Verify”, then click Launch retest to jump to the retest panel for this finding.",
+      valueShipped: "A concrete fix-and-verify contract per finding, instead of free-text tickets.",
+    },
+  },
   {
     id: "uc6-retest",
     useCase: 6,
@@ -345,7 +381,46 @@ export const STEPS: Step[] = [
       valueShipped: "Deterministic fix verification with side-by-side proof — no full rescan required.",
     },
   },
+  {
+    id: "uc6-focus",
+    useCase: 6,
+    pillar: "posture",
+    headline: "Back to the Focus Queue",
+    path: "/focus",
+    anchor: "focus-queue",
+    executive: {
+      painPoint: "Dashboards show totals, but not what to do on Monday morning.",
+      lookingAt:
+        "The Focus Queue: overall posture grade across the five pillars, and a ranked list of next actions — exposures to mitigate, fixes to verify, blind spots to test and approvals to give.",
+      howArtex:
+        "ARTEX ranks work by real risk: proven critical exposure first, then pending approvals, unverified fixes and untested assets. A low-coverage estate never gets an “A” it hasn't earned.",
+      tryThis: "Click the top item's action button — it opens the exact finding, approval or coverage map to act on.",
+      valueShipped: "One prioritized to-do list that closes the loop from discovery to verified fix.",
+    },
+    analyst: {
+      painPoint:
+        "Switching between inventory, coverage, findings and approval screens to decide what's next wastes hours.",
+      lookingAt:
+        "Each queue item is tagged with its pillar (Risk Exposure, Coverage Status, Scope & Guardrails) and links straight into the remediation panel, retest or coverage map.",
+      howArtex:
+        "The posture score shows its factors (open criticals/highs, % untested) so the grade is explainable, not a black box.",
+      tryThis: "Hover the posture tile's factors, then open a Coverage Status item to test the remaining gray assets.",
+      valueShipped: "A transparent, explainable focus list that drives the next validation run.",
+    },
+  },
 ];
+
+const USE_CASE_PILLAR: Record<number, VmdrPillarId> = {
+  1: "assets",
+  2: "exposure",
+  3: "exposure",
+  4: "coverage",
+  5: "guardrails",
+  6: "exposure",
+};
+
+/** The VMDR menu pillar a step's screen sits under, shown as a chip on the guide card. */
+export const pillarOfStep = (step: Step): VmdrPillarId => step.pillar ?? USE_CASE_PILLAR[step.useCase] ?? "posture";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 export const stepUseCase = (index: number): number => STEPS[index]?.useCase ?? 1;

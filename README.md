@@ -16,7 +16,7 @@ and every finding stays bound to the assets and HTTP traffic that prove it.
 [![Go](https://img.shields.io/github/go-mod/go-version/BaaRai/ARTEX?color=6b34db)](go.mod)
 [![Discord](https://img.shields.io/badge/Discord-join%20the%20server-5865F2?logo=discord&logoColor=white)](https://discord.gg/VKyvMTcgXh)
 
-[VMDR use cases](#vmdr-ecosystem-use-cases) · [Guided walkthrough](#in-product-guided-walkthrough) · [In-product docs](#in-product-documentation-center) · [Quick start](#quick-start) · [How it works](#how-it-works) · [Architecture](#architecture) · [Install](#installation) · [Configuration](#configuration) · [Security](SECURITY.md)
+[VMDR navigation](#vmdr-navigation-and-workflow) · [VMDR use cases](#vmdr-ecosystem-use-cases) · [Guided walkthrough](#in-product-guided-walkthrough) · [In-product docs](#in-product-documentation-center) · [Quick start](#quick-start) · [How it works](#how-it-works) · [Architecture](#architecture) · [Install](#installation) · [Configuration](#configuration) · [Security](SECURITY.md)
 
 [![Join us on Discord](https://img.shields.io/badge/JOIN%20US%20ON-DISCORD-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/VKyvMTcgXh)
 
@@ -74,6 +74,49 @@ flowchart LR
 Every stage writes to the same two graphs, so the output of one stage is the input of the next:
 retest verdicts update findings, findings stay anchored to canonical assets, and coverage is
 recomputed from what was actually exercised.
+
+---
+
+## VMDR navigation and workflow
+
+The product menu is organized around five VMDR pillars, so inventory, testing coverage, proven
+exposure, overall posture and governance never blur together. Every pillar screen shows a small
+banner with its pillar, the one question it answers, and where it sits in the operating loop.
+
+| Menu pillar | Screens | Answers | Holds (and only holds) |
+|-------------|---------|---------|------------------------|
+| **Posture & Focus** | Focus Queue (`/focus`, the landing page), Overview Dashboard | *Where do I need to focus right now?* | Overall asset security posture grade with its factors, and a ranked queue of next actions |
+| **Discovered Assets** | Inventory & Asset Graph, Discovery Sources | *What exists in our environment?* | The de-duplicated `root_domain → subdomain → ip → service → app → endpoint` hierarchy, provenance and per-asset posture snapshot |
+| **Coverage Status** | Test Coverage (`/coverage`) | *What has been tested, and what has not?* | Tested vs. untested assets per engagement (from `exploration_anchors`), by asset type, plus open coverage gaps |
+| **Risk Exposure** | Findings & Remediation, HTTP Evidence | *What is actually exposed, and can we prove it?* | Attack paths, confirmed findings, HTTP evidence receipts, mitigation and remediation guidance, and targeted retests |
+| **Scope & Guardrails** | Scope & Interception Rules, Asset Blocklist, Approvals | *What may ARTEX touch, and who signs off?* | Allow/deny/ask rules, the asset blocklist with a rule tester, run budgets and the human approval queue |
+
+Below the pillars, **Operations** (tasks, chat, tool execution, LLM recordings, workspace) and
+**System** (LLM, agents, MCP, skills, tools, notifications, logs, settings) hold the machinery, and
+**Learn** opens the Guided Walkthrough and the Documentation Center.
+
+**The operating loop: Focus → Mitigate / Remediate → Verify**
+
+1. **Scope & Discover.** Confirm the in-scope boundaries, then review the normalized Discovered
+   Assets and their baseline posture.
+2. **Check Coverage.** Spot the *Tested* vs. *Untested* gaps, so a blind spot is never mistaken
+   for a clean result.
+3. **Inspect Exposure.** Review chained attack paths, confirmed findings and the HTTP proof that
+   shows each one is really exploitable.
+4. **Mitigate, Remediate & Verify.** Every finding has a *Mitigation & remediation* panel:
+   a temporary **mitigation** to lower the risk today (WAF rule, IP allow-list, rate limit,
+   disabling a feature), the permanent **remediation** of the root cause (code, configuration,
+   authentication or access fix), and the expected post-fix result. **Launch retest** replays
+   the original proof to verify closure.
+
+The **Focus Queue** ranks this work: proven critical exposure first, then pending approvals,
+fixes awaiting verification and untested assets, each linking straight to the screen where you
+act. Its posture grade (A–F) lists the factors behind it (open criticals/highs, percent untested)
+and is marked low-confidence when most in-scope assets are untested.
+
+| Focus Queue (Posture & Focus) | Test Coverage (Coverage Status) | Mitigation & remediation on a finding (Risk Exposure) |
+|---|---|---|
+| ![Focus Queue: posture grade across the five pillars and a ranked list of next actions](screenshots/vmdr/vmdr-focus-queue.png) | ![Test Coverage: tested vs. untested per engagement and by asset type](screenshots/vmdr/vmdr-coverage.png) | ![Mitigate now, Remediate and Verify guidance with Launch retest on a default-credentials finding](screenshots/vmdr/vmdr-remediation.png) |
 
 ---
 
@@ -193,13 +236,16 @@ ARTEX ships a guided tour of these six use cases inside the product, written in 
 two audiences:
 
 1. Seed the demo data and restart the server (see [Quick start](#quick-start)).
-2. Click **Guided Walkthrough** (compass icon) in the top header. A card docks beside the screen
+2. Click **Guided Walkthrough** (compass icon) in the top header, or **Learn → Guided Walkthrough**
+   in the menu. A card docks beside the screen
    and the tour navigates and spotlights the exact UI each step describes.
 3. Toggle **Executive (CISO)** for business outcomes or **Analyst (SecEng)** for the mechanics.
    The copy swaps in place without losing your position.
 4. The six chapters follow the use cases above: *Taming Asset Sprawl* (1), *Finding Real Attack
    Paths* (2), *Eliminating False Positives with Proof* (3), *Spotting Testing Blind Spots* (4),
-   *Safe Testing with Guardrails* (5) and *Proving Fixes Fast* (6), 10 steps in total.
+   *Safe Testing with Guardrails* (5) and *Proving Fixes Fast* (6), 12 steps in total. Each card
+   names the menu pillar its screen lives under, and the last chapter walks Mitigate → Remediate →
+   Verify on a real finding before returning to the Focus Queue.
 5. Each step shows **The Pain Point**, **What You're Looking At**, **How ARTEX Helps** (with a
    **Try This** action) and **Value Shipped**. Use **Back / Next**, the use-case switcher to jump
    between the six chapters, **Reset Demo** to return to Use Case 1, Step 1, and **Exit Tour**
@@ -217,7 +263,9 @@ Users can learn ARTEX without leaving the product, in plain, jargon-light langua
 - **Learn ARTEX hub (`/docs`)**: open **Docs** in the top header or **Learn → Learn ARTEX** in the
   sidebar. A table of contents that follows the scroll, instant keyword search and scannable cards
   cover four parts:
-  1. **What is ARTEX?** A plain-English overview, plus *traditional scanning vs. ARTEX validation*.
+  1. **What is ARTEX & how it's organized.** A plain-English overview, *the five VMDR pillars in
+     the menu*, the *Focus → Mitigate & remediate → Verify* loop, and *traditional scanning vs.
+     ARTEX validation*.
   2. **How ARTEX works**, in four building blocks: one shared asset map (Asset Graph), step-by-step
      thinking (Exploration Graph), camera-like proof (evidence receipts) and built-in safety brakes
      (guards and approvals).

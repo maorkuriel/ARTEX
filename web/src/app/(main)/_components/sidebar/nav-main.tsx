@@ -32,6 +32,7 @@ import { t } from "@/i18n";
 import { api } from "@/lib/api";
 import { setVisibleInterval } from "@/lib/polling";
 import { cn } from "@/lib/utils";
+import { useWalkthrough } from "@/lib/walkthrough/store";
 import type {
   NavBadge,
   NavGroup,
@@ -102,11 +103,12 @@ export function NavMain({ items }: NavMainProps) {
       return item.subItems.some((sub) => path.startsWith(sub.url));
     }
 
-    return path === item.url;
+    // Static export uses trailing slashes ("/function/findings/"); compare without them.
+    return path.replace(/\/+$/, "") === item.url;
   };
 
   const isSubItemActive = (url: string) => {
-    return path === url;
+    return path.replace(/\/+$/, "") === url;
   };
 
   const isSubmenuOpen = (item: NavMainParentItem) => {
@@ -186,25 +188,34 @@ function InterceptPendingBadge() {
   }, []);
   if (count === 0) return null;
   return (
-    <SidebarMenuBadge className="flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-amber-500 px-1 text-[11px] font-semibold leading-none text-white shadow-sm ring-1 ring-amber-400/40">
+    <SidebarMenuBadge className="flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-amber-500 px-1 font-semibold text-[11px] text-white leading-none shadow-sm ring-1 ring-amber-400/40">
       {count > 99 ? "99+" : count}
     </SidebarMenuBadge>
   );
 }
 
 function NavLinkItem({ item, isActive, showIconFallback }: NavLinkItemProps) {
+  const startWalkthrough = useWalkthrough((s) => s.start);
   return (
     <SidebarMenuItem data-tour={`nav-${item.id}`}>
       <SidebarMenuButton asChild aria-disabled={item.disabled} tooltip={item.title} isActive={isActive}>
-        <Link
-          prefetch={false}
-          href={item.url}
-          target={item.newTab ? "_blank" : undefined}
-          rel={item.newTab ? "noreferrer" : undefined}
-        >
-          <NavLinkIcon item={item} showFallback={showIconFallback} />
-          <span>{item.title}</span>
-        </Link>
+        {item.id === "walkthrough" ? (
+          // Starts the tour in place (a Link would not re-trigger it once the app is mounted).
+          <button type="button" onClick={() => startWalkthrough(0)}>
+            <NavLinkIcon item={item} showFallback={showIconFallback} />
+            <span>{item.title}</span>
+          </button>
+        ) : (
+          <Link
+            prefetch={false}
+            href={item.url}
+            target={item.newTab ? "_blank" : undefined}
+            rel={item.newTab ? "noreferrer" : undefined}
+          >
+            <NavLinkIcon item={item} showFallback={showIconFallback} />
+            <span>{item.title}</span>
+          </Link>
+        )}
       </SidebarMenuButton>
       {item.id === "approvals" ? <InterceptPendingBadge /> : <NavItemBadge badge={item.badge} />}
     </SidebarMenuItem>

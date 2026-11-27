@@ -96,6 +96,12 @@ function RuleTester() {
   const [checking, setChecking] = React.useState(false);
   const [result, setResult] = React.useState<Awaited<ReturnType<typeof api.checkAssetIntercept>> | null>(null);
 
+  // ?target=… (e.g. from a finding's "Hold ARTEX testing on this asset") prefills the tester.
+  React.useEffect(() => {
+    const v = new URLSearchParams(window.location.search).get("target");
+    if (v) setTarget(v);
+  }, []);
+
   async function check(e: React.FormEvent) {
     e.preventDefault();
     const v = target.trim();
