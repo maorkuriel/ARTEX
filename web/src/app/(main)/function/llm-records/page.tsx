@@ -523,7 +523,7 @@ export default function LLMRecordsPage() {
             {/* Request / Response split */}
             <div className="grid min-h-0 flex-1 grid-cols-2 divide-x">
               <div className="flex min-h-0 min-w-0 flex-col">
-                <div className="flex items-center gap-2 border-b py-0.5 pr-1.5 pl-3 text-[11px] font-medium text-muted-foreground">
+                <div className="flex items-center gap-2 border-b py-0.5 pr-1.5 pl-3 text-[12px] font-medium text-muted-foreground">
                   <span>{showRaw ? t("Request · raw") : t("Request")}</span>
                   <CopyButton text={reqText || ""} />
                 </div>
@@ -541,7 +541,7 @@ export default function LLMRecordsPage() {
                 </div>
               </div>
               <div className="flex min-h-0 min-w-0 flex-col">
-                <div className="flex items-center gap-2 border-b py-0.5 pr-1.5 pl-3 text-[11px] font-medium text-muted-foreground">
+                <div className="flex items-center gap-2 border-b py-0.5 pr-1.5 pl-3 text-[12px] font-medium text-muted-foreground">
                   <span>{showRaw ? t("Response · raw (SSE)") : t("Response")}</span>
                   <CopyButton text={respText || ""} />
                 </div>

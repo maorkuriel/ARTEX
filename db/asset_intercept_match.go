@@ -154,6 +154,38 @@ func (a *Asset) interceptCandidates() (domains, ips, urls []string) {
 	return domains, ips, urls
 }
 
+// InterceptCandidatesForTarget classifies a free-form target typed by an operator
+// (a domain, an IP, or a URL) into domain/IP/URL candidates the same way
+// interceptCandidates does for a stored asset: a URL contributes itself plus its
+// host (as a domain or an IP). Used by the rule tester so it reports exactly what
+// enforcement would do.
+func InterceptCandidatesForTarget(target string) (domains, ips, urls []string) {
+	target = strings.TrimSpace(target)
+	if target == "" {
+		return nil, nil, nil
+	}
+	if strings.Contains(target, "://") {
+		a := Asset{URL: target}
+		return a.interceptCandidates()
+	}
+	host := target
+	if h, _, err := net.SplitHostPort(target); err == nil {
+		host = h
+	}
+	host = strings.Trim(host, "[]")
+	if net.ParseIP(host) != nil {
+		return nil, []string{host}, nil
+	}
+	if strings.ContainsAny(target, "/?#") {
+		// A schemeless URL such as "example.gov.cn/login": match it as a URL and
+		// classify its host like a stored asset would.
+		a := Asset{URL: "http://" + target}
+		d, i, _ := a.interceptCandidates()
+		return d, i, []string{target}
+	}
+	return []string{strings.ToLower(host)}, nil, nil
+}
+
 // InterceptLabel returns a short identifier for the asset, used in explanatory
 // messages to the agent.
 func (a *Asset) InterceptLabel() string {

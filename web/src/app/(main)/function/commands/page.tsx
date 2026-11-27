@@ -309,7 +309,7 @@ export default function CommandsPage() {
                     <div className="flex items-center gap-2">
                       <span className="truncate font-mono text-xs font-medium">{s.tool}</span>
                       {s.errors > 0 && (
-                        <span className="text-[11px] tabular-nums text-red-600 dark:text-red-400">
+                        <span className="text-[12px] tabular-nums text-red-600 dark:text-red-400">
                           {t("Failed {count}", { count: s.errors })}
                         </span>
                       )}
@@ -323,7 +323,7 @@ export default function CommandsPage() {
                   </div>
                   <div className="text-right">
                     <div className="text-xs font-semibold tabular-nums">{s.total}</div>
-                    <div className="text-[11px] tabular-nums text-muted-foreground">
+                    <div className="text-[12px] tabular-nums text-muted-foreground">
                       {statsTotal > 0 ? ((s.total / statsTotal) * 100).toFixed(1) : "0.0"}%
                     </div>
                   </div>

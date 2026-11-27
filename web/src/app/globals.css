@@ -53,6 +53,16 @@
   --font-sans: var(--font-sans);
 }
 
+/* Readability type scale: the two smallest steps carry most of the UI (table cells,
+nav, badges, helper text), so they are one pixel larger than Tailwind's defaults
+(xs 12→13px, sm 14→15px) with matching line heights. Larger steps are unchanged. */
+@theme {
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: calc(1.125 / 0.8125);
+  --text-sm: 0.9375rem;
+  --text-sm--line-height: calc(1.375 / 0.9375);
+}
+
 /* Default theme styles (used when no data-theme-preset is set or when 'default' is selected).
 These serve as the fallback; there is no separate default.css file. */
 :root {

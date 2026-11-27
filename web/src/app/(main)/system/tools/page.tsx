@@ -268,23 +268,23 @@ function ToolEditor({
               }
             >
               <div className="flex flex-wrap items-center gap-2">
-                {r.parentKey && <span className="text-muted-foreground font-mono text-[10px]">↳</span>}
+                {r.parentKey && <span className="text-muted-foreground font-mono text-[11px]">↳</span>}
                 <span className="font-mono text-sm">{r.name}</span>
-                <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
+                <Badge variant="secondary" className="px-1.5 py-0 text-[11px]">
                   {r.type || "?"}
                 </Badge>
                 {r.required && (
-                  <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
+                  <Badge variant="outline" className="px-1.5 py-0 text-[11px]">
                     {t("Required")}
                   </Badge>
                 )}
                 {r.parentKey && (
-                  <span className="text-muted-foreground text-[10px]">{t("items sub-field")}</span>
+                  <span className="text-muted-foreground text-[11px]">{t("items sub-field")}</span>
                 )}
               </div>
               <div className="grid gap-2">
                 <div className="grid gap-1">
-                  <Label className="text-muted-foreground text-[11px]">{t("Description")}</Label>
+                  <Label className="text-muted-foreground text-[12px]">{t("Description")}</Label>
                   <Input
                     className="text-xs"
                     value={r.description}
@@ -292,7 +292,7 @@ function ToolEditor({
                   />
                 </div>
                 <div className="grid gap-1">
-                  <Label className="text-muted-foreground text-[11px]">{t("Default")}</Label>
+                  <Label className="text-muted-foreground text-[12px]">{t("Default")}</Label>
                   <Input
                     className="text-xs"
                     placeholder={r.scalar ? t("(empty = no default)") : t("scalars only")}
@@ -331,27 +331,27 @@ function ToolGridCard({ tool, onClick }: { tool: Tool; onClick: () => void }) {
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-mono text-sm font-medium">{tool.key}</span>
         {tool.system ? (
-          <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
+          <Badge variant="secondary" className="px-1.5 py-0 text-[11px]">
             {t("System")}
           </Badge>
         ) : (
-          <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
+          <Badge variant="outline" className="px-1.5 py-0 text-[11px]">
             {t("Custom · {kind}", { kind: tool.kind ?? "" })}
           </Badge>
         )}
         {tool.deferred && (
-          <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
+          <Badge variant="outline" className="px-1.5 py-0 text-[11px]">
             {t("deferred")}
           </Badge>
         )}
         {!tool.enabled && (
-          <Badge variant="outline" className="text-destructive px-1.5 py-0 text-[10px]">
+          <Badge variant="outline" className="text-destructive px-1.5 py-0 text-[11px]">
             {t("Disabled")}
           </Badge>
         )}
         <Badge
           variant="secondary"
-          className="ml-auto px-1.5 py-0 text-[10px] tabular-nums"
+          className="ml-auto px-1.5 py-0 text-[11px] tabular-nums"
           title={t("{count} calls in total", { count: tool.calls ?? 0 })}
         >
           {t("{count} calls", { count: tool.calls ?? 0 })}
@@ -362,10 +362,10 @@ function ToolGridCard({ tool, onClick }: { tool: Tool; onClick: () => void }) {
       </p>
       <div className="mt-auto flex flex-wrap gap-1 pt-1">
         {tool.agents.length === 0 && (
-          <span className="text-muted-foreground text-[10px]">{t("(no agents bound)")}</span>
+          <span className="text-muted-foreground text-[11px]">{t("(no agents bound)")}</span>
         )}
         {tool.agents.map((a) => (
-          <Badge key={a} variant="outline" className="px-1.5 py-0 text-[10px]">
+          <Badge key={a} variant="outline" className="px-1.5 py-0 text-[11px]">
             {a}
           </Badge>
         ))}

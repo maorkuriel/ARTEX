@@ -84,7 +84,7 @@ function tRich(key: string, nodes: Record<string, React.ReactNode>): React.React
 function JudgeStat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border bg-muted/20 px-3 py-2">
-      <div className="text-[10px] text-muted-foreground">{label}</div>
+      <div className="text-[11px] text-muted-foreground">{label}</div>
       <div className="mt-0.5 text-lg font-semibold tabular-nums">{value}</div>
     </div>
   );
@@ -349,7 +349,7 @@ function JudgeCard() {
             </div>
             {usage.daily.length > 0 && (
               <div className="mt-4">
-                <p className="mb-2 text-[10px] uppercase tracking-wider text-muted-foreground">
+                <p className="mb-2 text-[11px] uppercase tracking-wider text-muted-foreground">
                   {t("Daily consumption over the last 30 days (input + output)")}
                 </p>
                 <JudgeSparkbars daily={usage.daily} />
@@ -380,7 +380,7 @@ function JudgeCard() {
                 placeholder={t("Leave empty to use the built-in template")}
                 spellCheck={false}
               />
-              <p className="text-right text-[11px] text-muted-foreground">{t("{count} chars", { count: cfg.prompt.length })}</p>
+              <p className="text-right text-[12px] text-muted-foreground">{t("{count} chars", { count: cfg.prompt.length })}</p>
             </CardContent>
           </Card>
 
@@ -388,7 +388,7 @@ function JudgeCard() {
           <Card className="lg:col-span-2">
             <CardContent className="space-y-5 p-4">
               <div className="space-y-4">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{t("Judge model and policy")}</p>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{t("Judge model and policy")}</p>
                 <Field label={t("Approval model")}>
                   <Select value={String(cfg.profile_id || 0)} onValueChange={(v) => patch({ profile_id: Number(v) })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
@@ -437,7 +437,7 @@ function JudgeCard() {
               <Separator />
 
               <div className="space-y-4">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{t("Human approval (when the model decides \"ask\")")}</p>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{t("Human approval (when the model decides \"ask\")")}</p>
                 <Field label={t("Approval wait timeout (seconds)")}>
                   <Input
                     type="number"
@@ -999,7 +999,7 @@ export default function InterceptPage() {
               toolGroups.map((group, gi) => (
                 <div key={group.label}>
                   {gi > 0 && <Separator className="mb-5" />}
-                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                     {group.label}
                   </p>
                   <div className="space-y-0.5">
@@ -1014,11 +1014,11 @@ export default function InterceptPage() {
                           <div className="flex items-center gap-1.5">
                             <span className="font-mono text-sm">{tool.key}</span>
                             {(tool.kind && tool.kind !== "builtin") && (
-                              <Badge variant="outline" className="px-1 py-0 text-[10px]">{tool.kind}</Badge>
+                              <Badge variant="outline" className="px-1 py-0 text-[11px]">{tool.kind}</Badge>
                             )}
                           </div>
                           {tool.description && (
-                            <p className="text-[11px] text-muted-foreground line-clamp-1">{tool.description}</p>
+                            <p className="text-[12px] text-muted-foreground line-clamp-1">{tool.description}</p>
                           )}
                         </label>
                       </div>

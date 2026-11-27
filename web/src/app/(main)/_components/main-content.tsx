@@ -75,7 +75,7 @@ export function MainContent({ children }: { children: ReactNode }) {
     ) : null;
 
   const updateBanner = latest ? (
-    <div className="flex shrink-0 items-center justify-center gap-2 border-b bg-muted/50 px-4 py-1 text-xs">
+    <div role="status" className="flex shrink-0 items-center justify-center gap-2 border-b bg-muted/50 px-4 py-1 text-xs">
       <a href={RELEASES_URL} target="_blank" rel="noreferrer" className="underline-offset-2 hover:underline">
         {t("ARTEX {version} is available. See the release notes.", { version: latest })}
       </a>
@@ -138,7 +138,7 @@ export function MainContent({ children }: { children: ReactNode }) {
           </div>
         </div>
       </header>
-      <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden p-4 has-data-[content-padding=false]:p-0 md:p-6 md:has-data-[content-padding=false]:p-0">
+      <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden p-4 has-data-[content-padding=false]:p-0 md:p-6 md:has-data-[content-padding=false]:p-0 2xl:px-8 2xl:has-data-[content-padding=false]:p-0">
         {children}
       </div>
     </>

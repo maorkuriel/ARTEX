@@ -2786,5 +2786,14 @@
   "Why it matters for VMDR": "对 VMDR 的意义",
   "Other guides": "其他指南",
   "Open in Docs": "在文档中打开",
-  "Learn": "学习"
+  "Learn": "学习",
+  "Check a target": "检查目标",
+  "See whether a domain, IP or URL would be blocked, and by which rule.": "查看某个域名、IP 或 URL 是否会被拦截，以及由哪条规则拦截。",
+  "Target to check": "要检查的目标",
+  "Check": "检查",
+  "Matched {value} via rule": "{value} 命中规则",
+  "Not blocked by any enabled rule": "未被任何已启用的规则拦截",
+  "Rule summary": "规则概览",
+  "Rules": "规则",
+  "How matching works": "匹配方式说明"
 }

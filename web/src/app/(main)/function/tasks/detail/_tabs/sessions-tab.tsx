@@ -396,7 +396,7 @@ function SessionItem({
       >
         {icon ?? <span className="size-3.5 shrink-0" />}
         {s.intent_id && (
-          <span className="shrink-0 rounded bg-muted px-1 py-0.5 font-mono text-[10px] tabular-nums text-muted-foreground">
+          <span className="shrink-0 rounded bg-muted px-1 py-0.5 font-mono text-[11px] tabular-nums text-muted-foreground">
             #{s.intent_id}
           </span>
         )}
@@ -417,12 +417,12 @@ function SessionItem({
         )}
         {hasPending && <ShieldAlertIcon className="size-3.5 shrink-0 text-amber-500" />}
         {!active && unread ? (
-          <span className="inline-flex min-w-4 items-center justify-center rounded-full bg-blue-500/15 px-1 text-[10px] font-medium tabular-nums text-blue-600 dark:text-blue-400">
+          <span className="inline-flex min-w-4 items-center justify-center rounded-full bg-blue-500/15 px-1 text-[11px] font-medium tabular-nums text-blue-600 dark:text-blue-400">
             {unread > 99 ? "99+" : unread}
           </span>
         ) : null}
         {s.live && (
-          <span className="inline-flex items-center gap-1 rounded bg-blue-500/15 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400">
+          <span className="inline-flex items-center gap-1 rounded bg-blue-500/15 px-1.5 py-0.5 text-[11px] font-medium text-blue-600 dark:text-blue-400">
             <span className="size-1 animate-pulse rounded-full bg-blue-500" />
             {t("Live")}
           </span>
@@ -1614,7 +1614,7 @@ export function SessionsTab({ taskId, taskPaused = false }: { taskId: string; ta
                       · {activeDisplayTitle}
                     </span>
                     {hiddenUnread > 0 && (
-                      <span className="inline-flex min-w-4 shrink-0 items-center justify-center rounded-full bg-blue-500/15 px-1 text-[10px] font-medium tabular-nums text-blue-600 lg:hidden dark:text-blue-400">
+                      <span className="inline-flex min-w-4 shrink-0 items-center justify-center rounded-full bg-blue-500/15 px-1 text-[11px] font-medium tabular-nums text-blue-600 lg:hidden dark:text-blue-400">
                         {hiddenUnread > 99 ? "99+" : hiddenUnread}
                       </span>
                     )}
@@ -1624,7 +1624,7 @@ export function SessionsTab({ taskId, taskPaused = false }: { taskId: string; ta
               {!MOCK && (
                 <span
                   className={cn(
-                    "inline-flex items-center gap-1 text-[10px]",
+                    "inline-flex items-center gap-1 text-[11px]",
                     sseLive ? "text-emerald-500" : "text-amber-500",
                   )}
                   title={
@@ -1696,7 +1696,7 @@ export function SessionsTab({ taskId, taskPaused = false }: { taskId: string; ta
                           disabled={creatingMain}
                           title={t("New main agent session (clears context, task state preserved)")}
                           aria-label={t("New main agent session")}
-                          className="ml-auto flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-muted-foreground hover:bg-accent/60 hover:text-foreground disabled:opacity-50"
+                          className="ml-auto flex items-center gap-1 rounded px-1.5 py-0.5 text-[12px] text-muted-foreground hover:bg-accent/60 hover:text-foreground disabled:opacity-50"
                         >
                           {creatingMain ? (
                             <Loader2Icon className="size-3.5 animate-spin" />
@@ -1779,7 +1779,7 @@ export function SessionsTab({ taskId, taskPaused = false }: { taskId: string; ta
                   <Tooltip>
                     <TooltipTrigger asChild>{titleEl}</TooltipTrigger>
                     <TooltipContent side="bottom" align="start" className="max-h-80 max-w-sm overflow-auto p-0">
-                      <pre className="p-2 text-[10px] leading-relaxed">{JSON.stringify(meta.json, null, 2)}</pre>
+                      <pre className="p-2 text-[11px] leading-relaxed">{JSON.stringify(meta.json, null, 2)}</pre>
                     </TooltipContent>
                   </Tooltip>
                 ) : (
@@ -1818,13 +1818,13 @@ export function SessionsTab({ taskId, taskPaused = false }: { taskId: string; ta
                 </Badge>
               )}
               {active.live && (
-                <span className="inline-flex items-center gap-1 rounded bg-blue-500/15 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400">
+                <span className="inline-flex items-center gap-1 rounded bg-blue-500/15 px-1.5 py-0.5 text-[11px] font-medium text-blue-600 dark:text-blue-400">
                   <span className="size-1 animate-pulse rounded-full bg-blue-500" />
                   {t("Live")}
                 </span>
               )}
               {activeState?.hasMore && (
-                <span className="text-[10px] text-muted-foreground" title={t("Scroll up to load earlier history")}>
+                <span className="text-[11px] text-muted-foreground" title={t("Scroll up to load earlier history")}>
                   ↑ {t("Earlier history")}
                 </span>
               )}
@@ -2074,7 +2074,7 @@ export function SessionsTab({ taskId, taskPaused = false }: { taskId: string; ta
                   <InputGroupAddon align="block-end">
                     <span
                       className={cn(
-                        "px-1 text-[10px] tabular-nums text-muted-foreground",
+                        "px-1 text-[11px] tabular-nums text-muted-foreground",
                         workerMessageCharCount(workerMessage) > MAX_WORKER_MESSAGE_CHARS && "text-destructive",
                       )}
                     >

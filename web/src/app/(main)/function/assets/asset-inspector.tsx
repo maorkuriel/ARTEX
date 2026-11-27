@@ -101,7 +101,7 @@ export function AssetInspector({ asset, onClose }: { asset: Asset | null; onClos
       >
         <SheetHeader className="border-b">
           <div className="flex items-center gap-2">
-            <Badge variant="secondary" className="font-mono text-[10px] uppercase">
+            <Badge variant="secondary" className="font-mono text-[11px] uppercase">
               {asset.type}
             </Badge>
             <span className="text-muted-foreground text-xs">
@@ -115,7 +115,7 @@ export function AssetInspector({ asset, onClose }: { asset: Asset | null; onClos
         <div className="flex flex-col gap-4 p-4">
           {/* Deduplication key */}
           <section data-tour="asset-dedup-key" className="rounded-lg border border-primary/20 bg-primary/5 p-3">
-            <p className="font-medium text-[11px] text-primary uppercase tracking-wide">{t("Deduplication key")}</p>
+            <p className="font-medium text-[12px] text-primary uppercase tracking-wide">{t("Deduplication key")}</p>
             <code className="mt-1 block break-all rounded bg-background/70 px-2 py-1.5 font-mono text-xs">
               {dedupKey(asset)}
             </code>
@@ -128,7 +128,7 @@ export function AssetInspector({ asset, onClose }: { asset: Asset | null; onClos
 
           {/* Parent → child lineage */}
           <section>
-            <p className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">
+            <p className="font-medium text-[12px] text-muted-foreground uppercase tracking-wide">
               {t("Parent → child lineage")}
             </p>
             <div className="mt-1.5 flex flex-wrap items-center gap-1">
@@ -137,7 +137,7 @@ export function AssetInspector({ asset, onClose }: { asset: Asset | null; onClos
                   {i > 0 && <span className="text-muted-foreground">→</span>}
                   <span
                     className={cn(
-                      "rounded-md border px-1.5 py-0.5 font-mono text-[11px]",
+                      "rounded-md border px-1.5 py-0.5 font-mono text-[12px]",
                       i === chain.length - 1 ? "border-primary/30 bg-primary/5" : "bg-muted/40",
                     )}
                     title={n.label}
@@ -151,7 +151,7 @@ export function AssetInspector({ asset, onClose }: { asset: Asset | null; onClos
 
           {/* Merged observations + cross-task findings */}
           <section data-tour="asset-provenance">
-            <p className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">
+            <p className="font-medium text-[12px] text-muted-foreground uppercase tracking-wide">
               {t("Merged observations")}
             </p>
             <p className="mt-1 text-sm">{t("Merged from {n} task observations", { n: String(tasks.length) })}</p>
@@ -168,7 +168,7 @@ export function AssetInspector({ asset, onClose }: { asset: Asset | null; onClos
               )}
             </ul>
 
-            <p className="mt-3 font-medium text-[11px] text-muted-foreground uppercase tracking-wide">
+            <p className="mt-3 font-medium text-[12px] text-muted-foreground uppercase tracking-wide">
               {t("Findings on this canonical node ({n})", { n: String(findings.length) })}
             </p>
             <ul className="mt-1.5 flex flex-col gap-1.5">

@@ -1168,7 +1168,7 @@ export function TamperHooksPanel({ recentExchanges = [] }: { recentExchanges?: T
                               <TableRow key={`${line.Field}-${line.Outcome}-${idx}`}>
                                 <TableCell className="font-mono text-xs">
                                   <div>{line.Field || "—"}</div>
-                                  <div className="text-[11px] text-muted-foreground">
+                                  <div className="text-[12px] text-muted-foreground">
                                     {line.Phase} · {line.Action}
                                   </div>
                                 </TableCell>
@@ -1181,12 +1181,12 @@ export function TamperHooksPanel({ recentExchanges = [] }: { recentExchanges?: T
                                           ? "default"
                                           : "secondary"
                                     }
-                                    className="font-mono text-[11px]"
+                                    className="font-mono text-[12px]"
                                   >
                                     {line.Outcome}
                                   </Badge>
                                   {line.Reason && (
-                                    <div className="mt-1 font-mono text-[11px] text-muted-foreground">
+                                    <div className="mt-1 font-mono text-[12px] text-muted-foreground">
                                       {line.Reason}
                                     </div>
                                   )}
@@ -1205,7 +1205,7 @@ export function TamperHooksPanel({ recentExchanges = [] }: { recentExchanges?: T
                                     <span className="text-muted-foreground">—</span>
                                   )}
                                 </TableCell>
-                                <TableCell className="font-mono text-[11px] text-muted-foreground">
+                                <TableCell className="font-mono text-[12px] text-muted-foreground">
                                   {line.BeforeHash && <div>{line.BeforeHash.slice(0, 12)}</div>}
                                   {line.AfterHash && <div>→ {line.AfterHash.slice(0, 12)}</div>}
                                 </TableCell>

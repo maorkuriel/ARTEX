@@ -96,13 +96,13 @@ export function HelpDrawer() {
         {article && (
           <>
             <SheetHeader className="border-b pr-12">
-              <p className="font-medium text-[11px] text-primary uppercase tracking-wide">
+              <p className="font-medium text-[12px] text-primary uppercase tracking-wide">
                 {topic?.screen ? t("How this works · {screen}", { screen: topic.screen }) : t("How this works")}
               </p>
               <SheetTitle className="text-base">{article.title}</SheetTitle>
               <SheetDescription>{article.tagline}</SheetDescription>
               {article.technicalName && (
-                <span className="mt-1 self-start rounded-md border bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
+                <span className="mt-1 self-start rounded-md border bg-muted px-1.5 py-0.5 font-mono text-[12px] text-muted-foreground">
                   {article.technicalName}
                 </span>
               )}
@@ -112,7 +112,7 @@ export function HelpDrawer() {
               <ArticleBody article={article} onNavigate={close} showWalkthrough={!outcome} />
               {outcome && (
                 <div className="flex flex-col gap-2">
-                  <p className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">
+                  <p className="font-medium text-[12px] text-muted-foreground uppercase tracking-wide">
                     {t("Why it matters for VMDR")}
                   </p>
                   <OutcomeCardView card={outcome} onLaunch={close} />
@@ -122,7 +122,7 @@ export function HelpDrawer() {
               <div className="flex flex-col gap-2 border-t pt-4">
                 <label
                   htmlFor="help-topic"
-                  className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide"
+                  className="font-medium text-[12px] text-muted-foreground uppercase tracking-wide"
                 >
                   {t("Other guides")}
                 </label>

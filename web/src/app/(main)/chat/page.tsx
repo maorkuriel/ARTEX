@@ -140,7 +140,7 @@ function groupByAgent(conversations: Conversation[], agentByKey: Map<string, Age
 // console — shown while a turn is streaming.
 function LiveBadge() {
   return (
-    <span className="inline-flex items-center gap-1 rounded bg-blue-500/15 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400">
+    <span className="inline-flex items-center gap-1 rounded bg-blue-500/15 px-1.5 py-0.5 text-[11px] font-medium text-blue-600 dark:text-blue-400">
       <span className="size-1 animate-pulse rounded-full bg-blue-500" />
       {t("Live")}
     </span>
@@ -323,7 +323,7 @@ function LLMProfileRow({
           </button>
         </PopoverTrigger>
         <PopoverContent align="start" className="w-64 p-1">
-          <p className="text-muted-foreground px-2 py-1 text-[11px] font-medium">{t("Select an LLM profile")}</p>
+          <p className="text-muted-foreground px-2 py-1 text-[12px] font-medium">{t("Select an LLM profile")}</p>
           {/* default option */}
           <button
             type="button"
@@ -340,7 +340,7 @@ function LLMProfileRow({
               {activeDefault ? t("Default ({name})", { name: activeDefault.name }) : t("Default")}
             </span>
             {activeDefault && (
-              <span className="text-muted-foreground text-[11px]">
+              <span className="text-muted-foreground text-[12px]">
                 {activeDefault.format} · {activeDefault.model}
               </span>
             )}
@@ -359,7 +359,7 @@ function LLMProfileRow({
               )}
             >
               <span className="text-sm">{p.name}</span>
-              <span className="text-muted-foreground text-[11px]">
+              <span className="text-muted-foreground text-[12px]">
                 {p.format} · {p.model}
               </span>
             </button>
@@ -442,7 +442,7 @@ function DraftChat({
                 <Bot className="size-3.5" />
                 {a.name}
                 {!a.builtin && (
-                  <Badge variant="outline" className="px-1 py-0 text-[9px]">
+                  <Badge variant="outline" className="px-1 py-0 text-[10px]">
                     {t("Custom")}
                   </Badge>
                 )}
@@ -780,7 +780,7 @@ function ChatView({
         <span className="min-w-0 max-w-48 truncate text-sm font-medium">{agent?.name ?? conv.agent_key}</span>
         <span className="text-muted-foreground hidden shrink-0 font-mono text-xs sm:inline">{conv.agent_key}</span>
         {agent && !agent.builtin && (
-          <Badge variant="outline" className="shrink-0 px-1.5 py-0 text-[10px]">
+          <Badge variant="outline" className="shrink-0 px-1.5 py-0 text-[11px]">
             {t("Custom")}
           </Badge>
         )}
@@ -819,7 +819,7 @@ function ChatView({
           ) : (
             <>
               {hasMore && (
-                <div className="text-muted-foreground/70 pb-2 text-center text-[11px]">{t("Scroll up to load earlier messages…")}</div>
+                <div className="text-muted-foreground/70 pb-2 text-center text-[12px]">{t("Scroll up to load earlier messages…")}</div>
               )}
               <Transcript activity={messages} live={running} chat fetchDetail={fetchDetail} focusedSeq={focusHistory.ready ? approvalFocus.state?.source?.seq : undefined} />
             </>
@@ -958,7 +958,7 @@ const ConversationItem = React.memo(function ConversationItem({
               </Badge>
             ) : null}
           </div>
-          <div className="text-muted-foreground flex min-w-0 items-center gap-1 text-[11px]">
+          <div className="text-muted-foreground flex min-w-0 items-center gap-1 text-[12px]">
             {showAgent && (
               <>
                 <Bot className="size-3 shrink-0" />
@@ -1047,7 +1047,7 @@ function AgentGroupHeader({
       aria-expanded={!collapsed}
       title={collapsed ? t('Expand "{name}"', { name: group.name }) : t('Collapse "{name}"', { name: group.name })}
       className={cn(
-        "sticky top-0 z-10 flex min-w-0 items-center gap-1.5 rounded-md bg-card px-1.5 py-1 text-left font-medium text-[11px] transition-colors hover:bg-accent/50",
+        "sticky top-0 z-10 flex min-w-0 items-center gap-1.5 rounded-md bg-card px-1.5 py-1 text-left font-medium text-[12px] transition-colors hover:bg-accent/50",
         collapsed && hasActive ? "text-foreground" : "text-muted-foreground",
       )}
     >

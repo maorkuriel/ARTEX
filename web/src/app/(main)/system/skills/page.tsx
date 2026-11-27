@@ -199,7 +199,7 @@ function SkillsOverview({
   ];
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-6">
+    <div className="mx-auto w-full max-w-5xl space-y-6">
       <div>
         <h2 className="text-base font-semibold">{t("Skill library overview")}</h2>
         <p className="text-muted-foreground text-sm">{t("Select a skill on the left to view details and call history, or get a quick picture of overall usage here.")}</p>
@@ -211,7 +211,7 @@ function SkillsOverview({
           <div key={s.label} className="rounded-lg border p-3">
             <p className="text-2xl font-semibold tabular-nums">{s.value}</p>
             <p className="text-xs font-medium">{s.label}</p>
-            {s.hint && <p className="text-muted-foreground mt-0.5 text-[11px]">{s.hint}</p>}
+            {s.hint && <p className="text-muted-foreground mt-0.5 text-[12px]">{s.hint}</p>}
           </div>
         ))}
       </div>
@@ -264,7 +264,7 @@ function SkillsOverview({
                   className="flex w-full items-center gap-2 rounded px-1.5 py-1 text-left hover:bg-muted"
                 >
                   <span className="min-w-0 flex-1 truncate font-mono text-xs" title={s.name}>{s.name}</span>
-                  <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">{fmtTime(s.last_used)}</span>
+                  <span className="shrink-0 text-[12px] tabular-nums text-muted-foreground">{fmtTime(s.last_used)}</span>
                 </button>
               ))}
             </div>
@@ -803,7 +803,7 @@ export default function SkillsPage() {
                       <span className="min-w-0 flex-1 truncate font-semibold" title={s.name}>{s.name}</span>
                       {s.calls > 0 && (
                         <span
-                          className="shrink-0 rounded bg-muted px-1 text-[10px] tabular-nums text-muted-foreground"
+                          className="shrink-0 rounded bg-muted px-1 text-[11px] tabular-nums text-muted-foreground"
                           title={t("Called {count} times · last {time}", { count: s.calls, time: fmtTime(s.last_used) })}
                         >
                           {s.calls}
@@ -1042,7 +1042,7 @@ export default function SkillsPage() {
               <TabsTrigger value="mcp">
                 {t("Linked MCP")}
                 {newMcps.length > 0 && (
-                  <span className="ml-1.5 rounded-full bg-primary px-1.5 py-0.5 text-[10px] leading-none text-primary-foreground">
+                  <span className="ml-1.5 rounded-full bg-primary px-1.5 py-0.5 text-[11px] leading-none text-primary-foreground">
                     {newMcps.length}
                   </span>
                 )}
@@ -1050,7 +1050,7 @@ export default function SkillsPage() {
               <TabsTrigger value="visibility">
                 {t("Visibility")}
                 {newVisibility.length > 0 && (
-                  <span className="ml-1.5 rounded-full bg-primary px-1.5 py-0.5 text-[10px] leading-none text-primary-foreground">
+                  <span className="ml-1.5 rounded-full bg-primary px-1.5 py-0.5 text-[11px] leading-none text-primary-foreground">
                     {newVisibility.length}
                   </span>
                 )}

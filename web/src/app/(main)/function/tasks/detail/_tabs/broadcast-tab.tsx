@@ -234,7 +234,7 @@ function AssetList({ assets, dense = false }: { assets: FindingAsset[]; dense?: 
               )}
               title={`${typeLabel} · ${a.label}`}
             >
-              <span className="shrink-0 rounded bg-muted px-1 text-[10px] text-muted-foreground">{typeLabel}</span>
+              <span className="shrink-0 rounded bg-muted px-1 text-[11px] text-muted-foreground">{typeLabel}</span>
               <code className="truncate font-mono text-xs">{a.label}</code>
             </li>
           );
@@ -268,7 +268,7 @@ function RelatedNodeCard({ node, assets }: { node: TaskNode; assets: FindingAsse
       </div>
       <p className="line-clamp-4 text-xs break-words">{summary || t("(no summary)")}</p>
       <AssetList assets={assets} dense />
-      <pre className="max-h-40 overflow-auto rounded border bg-muted/40 p-2 font-mono text-[11px] whitespace-pre-wrap">
+      <pre className="max-h-40 overflow-auto rounded border bg-muted/40 p-2 font-mono text-[12px] whitespace-pre-wrap">
         {prettyPayload(node.payload)}
       </pre>
     </div>
@@ -354,7 +354,7 @@ function BroadcastRow({
       {/* Time column */}
       <div className="py-3 text-right text-xs text-muted-foreground tabular-nums">
         <div>{Number.isNaN(ts) ? "--:--:--" : clockFmt.format(ts)}</div>
-        <div className="text-[11px] opacity-70">{relTime(ts, now)}</div>
+        <div className="text-[12px] opacity-70">{relTime(ts, now)}</div>
       </div>
 
       {/* Timeline: vertical line + type dot */}
@@ -389,7 +389,7 @@ function BroadcastRow({
                 <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">P{node.priority}</span>
               )}
               {fresh && (
-                <span className="rounded bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-primary-foreground">
+                <span className="rounded bg-primary px-1.5 py-0.5 text-[11px] font-semibold text-primary-foreground">
                   {t("New")}
                 </span>
               )}

@@ -95,7 +95,7 @@ function MethodBadge({ method }: { method: string }) {
   return (
     <span
       className={cn(
-        "inline-block rounded px-1.5 py-0.5 font-mono font-semibold text-[10px] leading-none",
+        "inline-block rounded px-1.5 py-0.5 font-mono font-semibold text-[11px] leading-none",
         METHOD_COLOR[normalized] ?? "bg-muted text-muted-foreground",
       )}
     >
@@ -663,7 +663,7 @@ export function AssetsTab({ taskId }: { taskId: string }) {
                         return (
                           <span
                             key={`${asset.id}-${item.type ?? ""}-${item.username ?? ""}-${JSON.stringify(item)}`}
-                            className="inline-flex items-center gap-1 text-[11px]"
+                            className="inline-flex items-center gap-1 text-[12px]"
                           >
                             <KeyRoundIcon className="size-3 text-muted-foreground" />
                             <span className="font-mono">{item.type || item.username || t("Auth")}</span>

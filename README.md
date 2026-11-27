@@ -477,6 +477,10 @@ worker remains confined to the intent it claimed.
 - **Scope and target gate**: scope rows define the coverage denominator; assets outside the
   declared scope are not explored. The target gate (off by default, API-only) can refuse
   destinations that were not approved.
+- **Asset blocklist with a rule tester**: **System → Asset Interception** blocks domains, IPs, URLs
+  and CIDR networks globally (built-in fuzzy blocks for `.gov`/`.gov.cn`/`.edu`/`.edu.cn`). The
+  **Check a target** panel (`POST /api/asset-intercept/check`) tells you whether a given domain, IP
+  or URL would be blocked and by which rule, using the same matcher as enforcement.
 - **Budgets**: `ARTEX_TASK_BUDGET_TOKENS` / `ARTEX_TASK_BUDGET_TURNS` cap a whole task (planner and
   workers); `ARTEX_INTENT_BUDGET_TOKENS` / `ARTEX_INTENT_BUDGET_TURNS` cap one worker run. Near the
   limit the task enters a forced wrap-up; a worker is not started when the remaining budget cannot

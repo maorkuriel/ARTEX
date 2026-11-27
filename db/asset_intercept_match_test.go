@@ -128,3 +128,35 @@ func TestAssetInterceptCandidates(t *testing.T) {
 		t.Fatalf("an IP in a URL should be hit by CIDR, ips=%v rule=%+v", ips, r)
 	}
 }
+
+func TestInterceptCandidatesForTarget(t *testing.T) {
+	rules := []AssetInterceptRule{
+		rule("fuzzy_domain", ".gov.cn", true),
+		rule("cidr", "10.0.0.0/8", true),
+		rule("fuzzy_url", "/admin", true),
+		rule("exact_domain", "disabled.example", false),
+	}
+	cases := []struct {
+		target  string
+		hit     bool
+		pattern string
+	}{
+		{"portal.beijing.gov.cn", true, ".gov.cn"},
+		{"https://portal.beijing.gov.cn:8443/app", true, ".gov.cn"},
+		{"10.1.2.3", true, "10.0.0.0/8"},
+		{"10.1.2.3:8080", true, "10.0.0.0/8"},
+		{"http://10.9.9.9/x", true, "10.0.0.0/8"},
+		{"shop.example.com/admin/login", true, "/admin"},
+		{"disabled.example", false, ""},
+		{"203.0.113.5", false, ""},
+		{"", false, ""},
+	}
+	for _, c := range cases {
+		d, i, u := InterceptCandidatesForTarget(c.target)
+		r, _, ok := MatchAssetInterceptRules(rules, d, i, u)
+		if ok != c.hit || (ok && r.Pattern != c.pattern) {
+			t.Errorf("target %q: hit=%v rule=%q, want hit=%v rule=%q (domains=%v ips=%v urls=%v)",
+				c.target, ok, r.Pattern, c.hit, c.pattern, d, i, u)
+		}
+	}
+}

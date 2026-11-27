@@ -2786,5 +2786,14 @@
   "Why it matters for VMDR": "VMDR için neden önemli",
   "Other guides": "Diğer kılavuzlar",
   "Open in Docs": "Belgelerde aç",
-  "Learn": "Öğren"
+  "Learn": "Öğren",
+  "Check a target": "Bir hedefi kontrol et",
+  "See whether a domain, IP or URL would be blocked, and by which rule.": "Bir alan adının, IP'nin veya URL'nin engellenip engellenmeyeceğini ve hangi kuralla engelleneceğini görün.",
+  "Target to check": "Kontrol edilecek hedef",
+  "Check": "Kontrol et",
+  "Matched {value} via rule": "{value} şu kuralla eşleşti",
+  "Not blocked by any enabled rule": "Etkin hiçbir kural tarafından engellenmiyor",
+  "Rule summary": "Kural özeti",
+  "Rules": "Kurallar",
+  "How matching works": "Eşleştirme nasıl çalışır"
 }

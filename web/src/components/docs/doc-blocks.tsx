@@ -82,7 +82,7 @@ function Block({ block }: { block: DocBlock }) {
         <div className="flex gap-2.5 rounded-lg border border-primary/20 bg-primary/5 p-3">
           <Lightbulb className="mt-0.5 size-4 shrink-0 text-primary" />
           <div>
-            <p className="font-medium text-[11px] text-primary uppercase tracking-wide">{t("Example")}</p>
+            <p className="font-medium text-[12px] text-primary uppercase tracking-wide">{t("Example")}</p>
             <p className="mt-0.5 text-sm leading-relaxed">{block.text}</p>
           </div>
         </div>
@@ -164,17 +164,17 @@ export function OutcomeCardView({ card, onLaunch }: { card: OutcomeCard; onLaunc
       </div>
       <dl className="flex flex-1 flex-col gap-2.5">
         <div>
-          <dt className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">{t("Problem")}</dt>
+          <dt className="font-medium text-[12px] text-muted-foreground uppercase tracking-wide">{t("Problem")}</dt>
           <dd className="mt-0.5 text-sm leading-snug">{card.problem}</dd>
         </div>
         <div>
-          <dt className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">
+          <dt className="font-medium text-[12px] text-muted-foreground uppercase tracking-wide">
             {t("How ARTEX helps")}
           </dt>
           <dd className="mt-0.5 text-sm leading-snug">{card.helps}</dd>
         </div>
         <div>
-          <dt className="font-medium text-[11px] text-primary uppercase tracking-wide">{t("Outcome")}</dt>
+          <dt className="font-medium text-[12px] text-primary uppercase tracking-wide">{t("Outcome")}</dt>
           <dd className="mt-0.5 font-medium text-sm leading-snug">{card.outcome}</dd>
         </div>
       </dl>

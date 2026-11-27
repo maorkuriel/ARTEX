@@ -120,7 +120,7 @@ function RoleGuideCard({ guide }: { guide: RoleGuide }) {
   return (
     <div className="flex flex-col gap-3 rounded-xl border bg-card p-4 shadow-xs">
       <div>
-        <p className="font-medium text-[11px] text-primary uppercase tracking-wide">{t("Where to start")}</p>
+        <p className="font-medium text-[12px] text-primary uppercase tracking-wide">{t("Where to start")}</p>
         <h3 className="mt-0.5 font-semibold text-sm">{guide.title}</h3>
         <p className="mt-0.5 text-muted-foreground text-sm">{guide.who}</p>
       </div>
@@ -210,7 +210,7 @@ export default function DocsPage() {
   useFollowScroll(tocColumnRef, tocRef);
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6" data-tour="docs-hub">
+    <div className="mx-auto flex w-full max-w-[1840px] flex-col gap-6" data-tour="docs-hub">
       {/* Hero */}
       <div className="flex flex-col gap-4 rounded-2xl border bg-card p-5 shadow-xs md:p-6">
         <div className="flex items-start gap-3">
@@ -278,11 +278,11 @@ export default function DocsPage() {
         ))}
       </nav>
 
-      <div className="grid gap-8 lg:grid-cols-[220px_minmax(0,1fr)]">
+      <div className="grid gap-8 lg:grid-cols-[220px_minmax(0,1fr)] 2xl:grid-cols-[240px_minmax(0,1fr)]">
         {/* Table of contents: follows the scroll (see useFollowScroll) */}
         <aside ref={tocColumnRef} className="hidden lg:block">
           <nav ref={tocRef} aria-label={t("On this page")} className="flex flex-col gap-1 will-change-transform">
-            <p className="mb-1 px-2 font-medium text-[11px] text-muted-foreground uppercase tracking-wide">
+            <p className="mb-1 px-2 font-medium text-[12px] text-muted-foreground uppercase tracking-wide">
               {t("On this page")}
             </p>
             {PILLARS.map((p) => (
@@ -341,7 +341,7 @@ export default function DocsPage() {
                   <h2 className="font-semibold text-lg tracking-tight">{pillar.title}</h2>
                   <p className="text-muted-foreground text-sm">{pillar.summary}</p>
                 </header>
-                <div className="flex flex-col gap-4">
+                <div className="grid items-start gap-4 2xl:grid-cols-2">
                   {list.map((a) => (
                     <article
                       key={a.id}
@@ -352,7 +352,7 @@ export default function DocsPage() {
                         <div className="flex flex-wrap items-center gap-2">
                           <h3 className="font-semibold text-base">{a.title}</h3>
                           {a.technicalName && (
-                            <span className="rounded-md border bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
+                            <span className="rounded-md border bg-muted px-1.5 py-0.5 font-mono text-[12px] text-muted-foreground">
                               {a.technicalName}
                             </span>
                           )}
@@ -401,7 +401,7 @@ export default function DocsPage() {
                 </div>
               )}
               {glossary.length > 0 && (
-                <dl className="grid gap-3 md:grid-cols-2">
+                <dl className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
                   {glossary.map((g) => (
                     <div key={g.term} className="rounded-xl border bg-card p-4 shadow-xs">
                       <dt className="flex items-center justify-between gap-2">

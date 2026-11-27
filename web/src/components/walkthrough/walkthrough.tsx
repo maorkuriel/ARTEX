@@ -59,7 +59,7 @@ function Section({ label, children, accent }: { label: string; children: string;
     <section className={cn(accent && "rounded-lg border border-primary/20 bg-primary/5 p-2.5")}>
       <p
         className={cn(
-          "font-medium text-[11px] uppercase tracking-wide",
+          "font-medium text-[12px] uppercase tracking-wide",
           accent ? "text-primary" : "text-muted-foreground",
         )}
       >
@@ -227,7 +227,7 @@ export function Walkthrough() {
         aria-label={t("Guided Walkthrough")}
         className={cn(
           "pointer-events-auto fixed z-[95] flex max-h-[85vh] flex-col gap-3 overflow-y-auto rounded-xl border bg-background p-4 shadow-2xl",
-          "right-4 bottom-4 left-4 w-auto sm:w-[400px] sm:max-w-[calc(100vw-2rem)]",
+          "right-4 bottom-4 left-4 w-auto sm:w-[420px] 2xl:w-[460px] sm:max-w-[calc(100vw-2rem)]",
           // Flip to the opposite side of the spotlight so a right-side drawer stays visible.
           cardOnLeft ? "sm:right-auto sm:left-4" : "sm:left-auto sm:right-4",
         )}
@@ -271,12 +271,12 @@ export function Walkthrough() {
           <Section label={t("The Pain Point")}>{content.painPoint}</Section>
           <Section label={t("What you're looking at")}>{content.lookingAt}</Section>
           <section>
-            <p className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">
+            <p className="font-medium text-[12px] text-muted-foreground uppercase tracking-wide">
               {t("How ARTEX helps")}
             </p>
             <p className="mt-0.5 text-sm leading-snug">{content.howArtex}</p>
             <div className="mt-2 rounded-lg border border-primary/20 bg-primary/5 p-2.5">
-              <p className="font-medium text-[11px] text-primary uppercase tracking-wide">{t("Try this")}</p>
+              <p className="font-medium text-[12px] text-primary uppercase tracking-wide">{t("Try this")}</p>
               <p className="mt-0.5 text-sm leading-snug">{content.tryThis}</p>
             </div>
           </section>

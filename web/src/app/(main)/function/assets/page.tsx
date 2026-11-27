@@ -85,7 +85,7 @@ function MethodBadge({ method }: { method: string }) {
   return (
     <span
       className={cn(
-        "inline-block rounded px-1.5 py-0.5 font-mono text-[10px] font-semibold leading-none",
+        "inline-block rounded px-1.5 py-0.5 font-mono text-[11px] font-semibold leading-none",
         METHOD_COLOR[m] ?? "bg-muted text-muted-foreground",
       )}
     >
@@ -414,7 +414,7 @@ function AssetsPageInner() {
                         {c.scope?.length ? (
                           <div className="flex flex-wrap gap-1">
                             {c.scope.map((s, i) => (
-                              <Badge key={i} variant="secondary" className="font-mono text-[11px]">
+                              <Badge key={i} variant="secondary" className="font-mono text-[12px]">
                                 {s.raw}
                               </Badge>
                             ))}
@@ -703,7 +703,7 @@ function AssetsPageInner() {
                     <Checkbox checked={selected.has(a.id)} onCheckedChange={() => toggleSelect(a.id)} />
                   </TableCell>
                   <TableCell className="text-xs">
-                    <Badge variant={isHttp ? "default" : "secondary"} className="font-mono text-[10px]">
+                    <Badge variant={isHttp ? "default" : "secondary"} className="font-mono text-[11px]">
                       {svc || "—"}
                     </Badge>
                   </TableCell>
@@ -735,7 +735,7 @@ function AssetsPageInner() {
                         const item = authItem as Record<string, string>;
                         const label = item.type || item.username || t("Auth");
                         return (
-                          <span key={i} className="inline-flex items-center gap-1 text-[11px]">
+                          <span key={i} className="inline-flex items-center gap-1 text-[12px]">
                             <KeyRoundIcon className="size-3 text-muted-foreground" />
                             <span className="font-mono">{label}</span>
                           </span>
@@ -1027,7 +1027,7 @@ function Chips({ items, mono }: { items: string[]; mono?: boolean }) {
   return (
     <div className="flex flex-wrap gap-1">
       {clean.map((s, i) => (
-        <Badge key={i} variant="outline" className={cn("text-[10px]", mono && "font-mono")}>
+        <Badge key={i} variant="outline" className={cn("text-[11px]", mono && "font-mono")}>
           {s}
         </Badge>
       ))}

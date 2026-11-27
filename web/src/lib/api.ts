@@ -1419,6 +1419,12 @@ export const api = {
   deleteAssetInterceptRule: (id: number) => del<{ deleted: number }>(`/asset-intercept/rules/${id}`),
   toggleAssetInterceptRule: (id: number, enabled: boolean) =>
     post<{ ok: boolean; enabled: boolean }>(`/asset-intercept/rules/${id}/toggle`, { enabled }),
+  /** Rule tester: which enabled rule (if any) would block this domain / IP / URL. */
+  checkAssetIntercept: (target: string) =>
+    post<{ target: string; blocked: boolean; rule?: AssetInterceptRule; matched_value?: string }>(
+      "/asset-intercept/check",
+      { target },
+    ),
 
   // ---- intercept pending (ask) ----
   interceptPending: () => get<{ pending: InterceptPending[] }>("/intercept/pending").then((r) => arr(r.pending)),

@@ -925,7 +925,7 @@ export default function TrafficPage() {
                         {e.rewritten ? (
                           <Badge
                             variant="outline"
-                            className="shrink-0 border-amber-500/30 bg-amber-500/10 px-1.5 py-0 text-[10px] font-medium text-amber-600 dark:text-amber-400"
+                            className="shrink-0 border-amber-500/30 bg-amber-500/10 px-1.5 py-0 text-[11px] font-medium text-amber-600 dark:text-amber-400"
                           >
                             {t("Rewritten")}
                           </Badge>

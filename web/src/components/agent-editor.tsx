@@ -390,7 +390,7 @@ export function AgentEditor({ agentKey, onSaved }: { agentKey: string; onSaved?:
                     <button type="button" onClick={() => setPrompt((p) => `${p}{{.${v.name}}}`)}
                       className="hover:bg-muted inline-flex items-center gap-1 rounded-md border bg-muted/40 px-2 py-1 font-mono text-xs">
                       {`{{.${v.name}}}`}
-                      <Badge variant="secondary" className="px-1 py-0 text-[10px]">{t(v.source)}</Badge>
+                      <Badge variant="secondary" className="px-1 py-0 text-[11px]">{t(v.source)}</Badge>
                     </button>
                   </TooltipTrigger>
                   <TooltipContent className="max-w-xs">
@@ -686,10 +686,10 @@ export function AgentEditor({ agentKey, onSaved }: { agentKey: string; onSaved?:
                 />
                 <span className="font-mono text-xs">{tool.key}</span>
                 {isTraffic && (
-                  <Badge variant="secondary" className="px-1 py-0 text-[9px]">{t("Traffic")}</Badge>
+                  <Badge variant="secondary" className="px-1 py-0 text-[10px]">{t("Traffic")}</Badge>
                 )}
                 {!tool.enabled && (
-                  <Badge variant="outline" className="text-destructive px-1 py-0 text-[9px]">{t("Disabled")}</Badge>
+                  <Badge variant="outline" className="text-destructive px-1 py-0 text-[10px]">{t("Disabled")}</Badge>
                 )}
                 {gated ? (
                   <span className="text-muted-foreground ml-auto text-xs">{t("Requires traffic capture")}</span>
@@ -1187,7 +1187,7 @@ function AgentTriggersTab({ agentKey, agent }: { agentKey: string; agent?: Agent
               <div className="flex flex-wrap items-center gap-1.5">
                 <span className="font-medium">{condLabel(trg)}</span>
                 {!trg.enabled && (
-                  <Badge variant="outline" className="text-destructive px-1 py-0 text-[9px]">{t("Disabled")}</Badge>
+                  <Badge variant="outline" className="text-destructive px-1 py-0 text-[10px]">{t("Disabled")}</Badge>
                 )}
               </div>
               <div className="text-muted-foreground grid gap-0.5 text-xs">

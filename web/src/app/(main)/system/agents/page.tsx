@@ -70,16 +70,16 @@ function AgentGridCard({
           <span className="text-sm font-medium">{agent.name}</span>
           <span className="text-muted-foreground font-mono text-xs">{agent.key}</span>
           {agent.builtin ? (
-            <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
+            <Badge variant="secondary" className="px-1.5 py-0 text-[11px]">
               {t("Built-in")}
             </Badge>
           ) : (
-            <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
+            <Badge variant="outline" className="px-1.5 py-0 text-[11px]">
               {t("Custom")}
             </Badge>
           )}
           {!agent.enabled && (
-            <Badge variant="outline" className="text-destructive px-1.5 py-0 text-[10px]">
+            <Badge variant="outline" className="text-destructive px-1.5 py-0 text-[11px]">
               {t("Disabled")}
             </Badge>
           )}
@@ -87,7 +87,7 @@ function AgentGridCard({
         <p className="text-muted-foreground line-clamp-2 min-h-8 text-xs">
           {agent.description || t("(no description)")}
         </p>
-        <div className="text-muted-foreground flex flex-wrap gap-1.5 text-[10px]">
+        <div className="text-muted-foreground flex flex-wrap gap-1.5 text-[11px]">
           <span className="rounded border px-1.5 py-0.5">MCP {agent.mcp_count ?? 0}</span>
           <span className="rounded border px-1.5 py-0.5">{t("Skill {count}", { count: agent.skill_count ?? 0 })}</span>
           <span className="rounded border px-1.5 py-0.5">{t("Tools {count}", { count: agent.tool_count ?? 0 })}</span>
@@ -272,7 +272,7 @@ export default function AgentsPage() {
                   {editing.name}
                   <span className="text-muted-foreground font-mono text-xs">{editing.key}</span>
                   {!editing.builtin && (
-                    <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
+                    <Badge variant="outline" className="px-1.5 py-0 text-[11px]">
                       {t("Custom")}
                     </Badge>
                   )}

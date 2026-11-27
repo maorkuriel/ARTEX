@@ -52,6 +52,45 @@ func (s *Server) assetInterceptCreateRule(w http.ResponseWriter, r *http.Request
 	writeJSON(w, 200, rule)
 }
 
+// assetInterceptCheck is the read-only rule tester: it reports which enabled rule
+// (if any) would block the given domain / IP / URL, using the same matcher that
+// enforces the blocklist.
+func (s *Server) assetInterceptCheck(w http.ResponseWriter, r *http.Request) {
+	pg := s.pg(w)
+	if pg == nil {
+		return
+	}
+	var req struct {
+		Target string `json:"target"`
+	}
+	if err := decode(w, r, &req); err != nil {
+		writeErr(w, 400, err.Error())
+		return
+	}
+	target := strings.TrimSpace(req.Target)
+	if target == "" {
+		writeErr(w, 400, "target is required")
+		return
+	}
+	if len(target) > 2048 {
+		writeErr(w, 400, "target is too long")
+		return
+	}
+	rules, err := pg.ListAssetInterceptRules()
+	if err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	domains, ips, urls := db.InterceptCandidatesForTarget(target)
+	rule, value, hit := db.MatchAssetInterceptRules(rules, domains, ips, urls)
+	resp := map[string]any{"target": target, "blocked": hit}
+	if hit {
+		resp["rule"] = rule
+		resp["matched_value"] = value
+	}
+	writeJSON(w, 200, resp)
+}
+
 func (s *Server) assetInterceptUpdateRule(w http.ResponseWriter, r *http.Request) {
 	pg := s.pg(w)
 	if pg == nil {

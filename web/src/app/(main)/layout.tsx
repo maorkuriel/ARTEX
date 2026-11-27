@@ -73,9 +73,13 @@ export default function Layout({ children }: Readonly<{ children: ReactNode }>) 
       <AppSidebar variant={variant} collapsible={collapsible} />
       <SidebarInset
         className={cn(
-          "[html[data-content-layout=centered]_&>*]:mx-auto",
-          "[html[data-content-layout=centered]_&>*]:w-full",
-          "[html[data-content-layout=centered]_&>*]:max-w-screen-2xl",
+          // "Centered" layout: cap the page content, not the banners (role=alert/status) or the top bar
+          // (they stay edge to edge), and let the cap grow with the screen: at least 96rem,
+          // otherwise 90% of the available width. A fixed 1536px cap left wide empty bands
+          // beside the content on large and ultrawide monitors.
+          "[html[data-content-layout=centered]_&>*:not(header):not([role])]:mx-auto",
+          "[html[data-content-layout=centered]_&>*:not(header):not([role])]:w-full",
+          "[html[data-content-layout=centered]_&>*:not(header):not([role])]:max-w-[max(96rem,90%)]",
           "peer-data-[variant=inset]:border",
           "[--dashboard-header-height:--spacing(12)]",
           "min-w-0 overflow-x-hidden",
